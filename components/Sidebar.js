@@ -183,7 +183,7 @@ export default function Sidebar({ onClose }) {
           {!logoError ? (
             <div className="w-10 h-10 rounded-lg overflow-hidden bg-white flex items-center justify-center flex-shrink-0 shadow-md p-0.5">
               <Image
-                src="/Logo Savitax R.png"
+                src="/logo-savitax.png"
                 alt="Savitax"
                 width={40}
                 height={40}
