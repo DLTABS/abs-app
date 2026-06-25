@@ -27,7 +27,11 @@ export async function GET(request) {
 
   if (!room) return Response.json({ error: 'Room not found' }, { status: 404 })
   if (!staffList || staffList.length === 0) {
-    return Response.json({ room, staff: [], totals: { taskPct: 0, debtPct: 0, clientCount: 0 }, taskDefs: [] })
+    return Response.json({
+      room, staff: [],
+      totals: { taskPct: 0, debtPct: 0, clientCount: 0, totalTasks: 0, doneTasks: 0, totalFee: 0, collected: 0 },
+      taskDefs: [],
+    })
   }
 
   const staffIds = staffList.map(s => s.id)

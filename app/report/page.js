@@ -7,8 +7,6 @@ import { loadPermissionData, can } from '@/lib/permissions'
 
 const pctColor = (v) => v >= 90 ? 'text-green-600' : v >= 70 ? 'text-yellow-600' : 'text-red-500'
 const barColor = (v) => v >= 90 ? 'bg-green-500' : v >= 70 ? 'bg-yellow-400' : 'bg-red-400'
-const kpiScore = (task, debt) => Math.round((task * 0.5) + (debt * 0.5))
-const kpiColor = (v) => v >= 90 ? 'text-green-700 bg-green-50' : v >= 70 ? 'text-yellow-700 bg-yellow-50' : 'text-red-600 bg-red-50'
 
 function Bar({ value }) {
   return (
@@ -22,10 +20,9 @@ export default function ReportPage() {
   const router = useRouter()
   const [myStaff, setMyStaff] = useState(null)
   const [permData, setPermData] = useState(null)
-  const [roomKpis, setRoomKpis] = useState([])
-  const [staffKpis, setStaffKpis] = useState([])
-  const [rooms, setRooms] = useState([])
-  const [clientCounts, setClientCounts] = useState({}) // staff_id → count
+  const [rooms, setRooms] = useState([])      // từ /api/admin/kpi-overview
+  const [allStaff, setAllStaff] = useState([]) // tất cả nhân viên (kèm room_name để filter)
+  const [roomList, setRoomList] = useState([]) // danh sách phòng để hiện filter
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState('room')
   const [expandedRoom, setExpandedRoom] = useState(null)
@@ -47,22 +44,17 @@ export default function ReportPage() {
       setMyStaff(me)
       setPermData(await loadPermissionData())
 
-      const [resRk, resSk, resRl, resClients] = await Promise.all([
-        supabase.from('room_kpi').select('*').eq('year', year).eq('month', month).order('room_name'),
-        supabase.from('staff_kpi').select('*').eq('year', year).eq('month', month).order('task_pct', { ascending: false }),
+      const [resRl, kpiJson] = await Promise.all([
         supabase.from('rooms').select('*').order('name'),
-        supabase.from('clients').select('assigned_to').eq('is_active', true),
+        fetch(`/api/admin/kpi-overview?year=${year}&month=${month}&_t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json()),
       ])
-      setRoomKpis(resRk.data ?? [])
-      setStaffKpis(resSk.data ?? [])
-      setRooms(resRl.data ?? [])
+      setRoomList(resRl.data ?? [])
 
-      // Client count per staff
-      const counts = {}
-      for (const c of (resClients.data ?? [])) {
-        counts[c.assigned_to] = (counts[c.assigned_to] ?? 0) + 1
-      }
-      setClientCounts(counts)
+      const roomMap = {}
+      for (const r of (resRl.data ?? [])) roomMap[r.id] = r.name
+
+      setRooms(kpiJson.rooms ?? [])
+      setAllStaff((kpiJson.staff ?? []).map(s => ({ ...s, room_name: roomMap[s.room_id] || '—' })))
       setLoading(false)
     }
     load()
@@ -70,11 +62,10 @@ export default function ReportPage() {
 
   const isAdminOrManager = can(myStaff?.role, 'view_kpi_report', permData)
 
-  // Tab 2: filter + sort by KPI
-  const filteredStaff = staffKpis
+  // Tab 2: filter + sort theo % hoàn thành công việc
+  const filteredStaff = allStaff
     .filter(s => !filterRoom || s.room_id === filterRoom)
-    .map(s => ({ ...s, kpi: kpiScore(s.task_pct, s.debt_pct) }))
-    .sort((a, b) => b.kpi - a.kpi)
+    .sort((a, b) => b.task_pct - a.task_pct)
 
   if (loading) return (
     <AppShell>
@@ -124,16 +115,14 @@ export default function ReportPage() {
         {/* ── TAB 1: Theo phòng ── */}
         {tab === 'room' && (
           <div className="space-y-3">
-            {roomKpis.length === 0 ? (
+            {rooms.length === 0 ? (
               <div className="bg-white border border-gray-100 rounded-2xl p-8 text-center">
                 <p className="text-sm text-gray-400">Chưa có dữ liệu tháng {month}/{year}</p>
               </div>
             ) : (
-              roomKpis.map(room => {
+              rooms.map(room => {
                 const isExpanded = expandedRoom === room.room_id
-                const roomStaff = staffKpis.filter(s => s.room_id === room.room_id)
-                  .map(s => ({ ...s, kpi: kpiScore(s.task_pct, s.debt_pct) }))
-                  .sort((a, b) => b.kpi - a.kpi)
+                const roomStaff = [...room.staff].sort((a, b) => b.task_pct - a.task_pct)
 
                 return (
                   <div key={room.room_id} className={`bg-white border rounded-2xl overflow-hidden transition-all ${
@@ -147,12 +136,7 @@ export default function ReportPage() {
                           <p className="text-sm font-semibold text-gray-900">Phòng {room.room_name}</p>
                           <p className="text-xs text-gray-400">{room.staff_count} nhân viên</p>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${kpiColor(kpiScore(room.avg_task_pct, room.avg_debt_pct))}`}>
-                            KPI {kpiScore(room.avg_task_pct, room.avg_debt_pct)}%
-                          </span>
-                          <span className="text-gray-400 text-sm">{isExpanded ? '▲' : '▼'}</span>
-                        </div>
+                        <span className="text-gray-400 text-sm">{isExpanded ? '▲' : '▼'}</span>
                       </div>
                       <div className="grid grid-cols-2 gap-4">
                         <div>
@@ -185,19 +169,17 @@ export default function ReportPage() {
                                   <div className="flex items-center gap-2 min-w-0">
                                     <span className="text-xs text-gray-300 w-4 flex-shrink-0">{i + 1}</span>
                                     <p className="text-sm font-medium text-gray-900 truncate">{s.full_name}</p>
+                                    <span className="text-xs text-gray-300 flex-shrink-0">{s.client_count} cty</span>
                                   </div>
                                   <div className="flex items-center gap-3 flex-shrink-0 ml-2">
-                                    <div className="text-right hidden sm:block">
+                                    <div className="text-right">
                                       <p className="text-xs text-gray-400">Công việc</p>
                                       <p className={`text-sm font-semibold ${pctColor(s.task_pct)}`}>{s.task_pct}%</p>
                                     </div>
-                                    <div className="text-right hidden sm:block">
+                                    <div className="text-right">
                                       <p className="text-xs text-gray-400">Thu nợ</p>
                                       <p className={`text-sm font-semibold ${pctColor(s.debt_pct)}`}>{s.debt_pct}%</p>
                                     </div>
-                                    <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${kpiColor(s.kpi)}`}>
-                                      {s.kpi}%
-                                    </span>
                                   </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-2 ml-6">
@@ -228,7 +210,7 @@ export default function ReportPage() {
                 }`}>
                 Tất cả phòng
               </button>
-              {rooms.map(r => (
+              {roomList.map(r => (
                 <button key={r.id} onClick={() => setFilterRoom(r.id)}
                   className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                     filterRoom === r.id ? 'bg-blue-600 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'
@@ -238,11 +220,6 @@ export default function ReportPage() {
               ))}
             </div>
 
-            {/* KPI formula note */}
-            <div className="bg-blue-50 text-blue-700 text-xs px-3 py-2 rounded-xl mb-4">
-              Điểm KPI = (% công việc × 50%) + (% thu nợ × 50%)
-            </div>
-
             {filteredStaff.length === 0 ? (
               <div className="bg-white border border-gray-100 rounded-2xl p-8 text-center">
                 <p className="text-sm text-gray-400">Chưa có dữ liệu tháng {month}/{year}</p>
@@ -250,16 +227,15 @@ export default function ReportPage() {
             ) : (
               <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
                 {/* Table header */}
-                <div className="grid grid-cols-[1fr_60px_60px_60px_72px] gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100">
+                <div className="grid grid-cols-[1fr_60px_70px_70px] gap-2 px-4 py-2.5 bg-gray-50 border-b border-gray-100">
                   <p className="text-xs font-semibold text-gray-400">Nhân viên</p>
                   <p className="text-xs font-semibold text-gray-400 text-right">Công ty</p>
                   <p className="text-xs font-semibold text-gray-400 text-right">CV%</p>
                   <p className="text-xs font-semibold text-gray-400 text-right">Nợ%</p>
-                  <p className="text-xs font-semibold text-gray-400 text-right">KPI</p>
                 </div>
                 <div className="divide-y divide-gray-50">
                   {filteredStaff.map((s, i) => (
-                    <div key={s.staff_id} className="grid grid-cols-[1fr_60px_60px_60px_72px] gap-2 px-4 py-3 items-center">
+                    <div key={s.staff_id} className="grid grid-cols-[1fr_60px_70px_70px] gap-2 px-4 py-3 items-center">
                       <div>
                         <div className="flex items-center gap-1.5">
                           <span className="text-xs text-gray-300 w-4">{i + 1}</span>
@@ -267,14 +243,9 @@ export default function ReportPage() {
                         </div>
                         <p className="text-xs text-gray-400 ml-5">Phòng {s.room_name}</p>
                       </div>
-                      <p className="text-sm text-gray-600 text-right">{clientCounts[s.staff_id] ?? 0}</p>
+                      <p className="text-sm text-gray-600 text-right">{s.client_count}</p>
                       <p className={`text-sm font-semibold text-right ${pctColor(s.task_pct)}`}>{s.task_pct}%</p>
                       <p className={`text-sm font-semibold text-right ${pctColor(s.debt_pct)}`}>{s.debt_pct}%</p>
-                      <div className="text-right">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${kpiColor(s.kpi)}`}>
-                          {s.kpi}%
-                        </span>
-                      </div>
                     </div>
                   ))}
                 </div>

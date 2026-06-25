@@ -80,14 +80,14 @@ export default function DashboardPage() {
       const [resMe, resRooms, resKpi] = await Promise.all([
         supabase.from('staff').select('*, rooms(name)').eq('id', session.user.id).single(),
         supabase.from('rooms').select('*').order('type').order('name'),
-        supabase.from('room_kpi').select('*').eq('year', year).eq('month', month),
+        fetch(`/api/admin/kpi-overview?year=${year}&month=${month}&_t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json()),
       ])
 
       setMyStaff(resMe.data)
       setRooms(resRooms.data ?? [])
 
       const map = {}
-      for (const k of (resKpi.data ?? [])) map[k.room_id] = k
+      for (const k of (resKpi.rooms ?? [])) map[k.room_id] = k
       setKpiMap(map)
 
       setLoading(false)
