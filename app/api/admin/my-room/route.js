@@ -22,7 +22,8 @@ export async function GET(request) {
 
   const supabase = getAdmin()
 
-  // Tìm staff record theo id HOẶC email (fallback)
+  // Tìm staff record theo id HOẶC email (fallback) — đã embed sẵn thông tin phòng,
+  // không cần truy vấn `rooms` riêng nữa (giảm 1 round-trip).
   let { data: staffRecord } = await supabase
     .from('staff').select('*, rooms(id, name, type)').eq('id', userId).single()
 
@@ -30,28 +31,24 @@ export async function GET(request) {
     return Response.json({ error: 'Staff not found or no room assigned' }, { status: 404 })
   }
 
-  // Gọi room API nội bộ
-  const roomId = staffRecord.room_id
+  const room = staffRecord.rooms || null
 
-  const [{ data: room }, { data: taskDefs }, { data: secondaryRows }] = await Promise.all([
-    supabase.from('rooms').select('*').eq('id', roomId).single(),
+  // Chạy song song mọi truy vấn không phụ thuộc lẫn nhau trong CÙNG 1 lượt
+  // (giảm round-trip tới Supabase — mỗi lượt chờ tốn ~300-800ms do khác vùng với Vercel)
+  const [{ data: taskDefs }, { data: secondaryRows }, { data: primaryClients }] = await Promise.all([
     supabase.from('task_definitions').select('*').eq('is_active', true).order('sort_order'),
     supabase.from('client_secondary_staff').select('client_id').eq('staff_id', staffRecord.id),
-  ])
-
-  const secondaryClientIds = (secondaryRows || []).map(r => r.client_id)
-
-  // Clients của nhân viên này: làm chính (assigned_to) HOẶC phụ (client_secondary_staff)
-  const [{ data: primaryClients }, { data: secondaryClients }] = await Promise.all([
     supabase.from('clients')
       .select('id, name, tax_code, monthly_fee, report_type, status, client_code')
       .eq('assigned_to', staffRecord.id).eq('status', 'active'),
-    secondaryClientIds.length > 0
-      ? supabase.from('clients')
-          .select('id, name, tax_code, monthly_fee, report_type, status, client_code')
-          .in('id', secondaryClientIds).eq('status', 'active')
-      : Promise.resolve({ data: [] }),
   ])
+
+  const secondaryClientIds = (secondaryRows || []).map(r => r.client_id)
+  const { data: secondaryClients } = secondaryClientIds.length > 0
+    ? await supabase.from('clients')
+        .select('id, name, tax_code, monthly_fee, report_type, status, client_code')
+        .in('id', secondaryClientIds).eq('status', 'active')
+    : { data: [] }
 
   const clients = [
     ...(primaryClients || []).map(c => ({ ...c, isSecondary: false })),

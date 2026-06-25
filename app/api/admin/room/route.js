@@ -35,47 +35,24 @@ export async function GET(request) {
   }
 
   const staffIds = staffList.map(s => s.id)
+  // Đã gộp address/tax_status/other_debt vào select chính — bỏ hẳn round-trip "extraMap" cũ
+  // (trước đây truy vấn lại y nguyên bảng clients chỉ để lấy thêm 3 cột này).
+  const CLIENT_COLS = 'id, name, tax_code, assigned_to, monthly_fee, report_type, fee_period, status, client_code, address, tax_status, other_debt'
 
-  // Clients in this room mà các nhân viên ở đây làm CHÍNH (assigned_to)
-  const { data: ownedClients } = await supabase
-    .from('clients')
-    .select('id, name, tax_code, assigned_to, monthly_fee, report_type, fee_period, status, client_code')
-    .in('assigned_to', staffIds)
-
-  // Clients mà các nhân viên ở phòng này là "phụ trách phụ" (có thể primary ở phòng khác)
-  const { data: secondaryRows } = await supabase
-    .from('client_secondary_staff')
-    .select('client_id, staff_id')
-    .in('staff_id', staffIds)
+  // Clients chính (assigned_to) và "phụ trách phụ" không phụ thuộc nhau — chạy song song
+  const [{ data: ownedClients }, { data: secondaryRows }] = await Promise.all([
+    supabase.from('clients').select(CLIENT_COLS).in('assigned_to', staffIds),
+    supabase.from('client_secondary_staff').select('client_id, staff_id').in('staff_id', staffIds),
+  ])
 
   const secondaryClientIds = [...new Set((secondaryRows || []).map(r => r.client_id))]
   const { data: secondaryClientRecords } = secondaryClientIds.length > 0
-    ? await supabase.from('clients')
-        .select('id, name, tax_code, assigned_to, monthly_fee, report_type, fee_period, status, client_code')
-        .in('id', secondaryClientIds)
+    ? await supabase.from('clients').select(CLIENT_COLS).in('id', secondaryClientIds)
     : { data: [] }
 
-  const secondaryClientMap = {}
-  for (const c of (secondaryClientRecords || [])) secondaryClientMap[c.id] = c
-
   const clients = [...(ownedClients || []), ...(secondaryClientRecords || [])]
-
-  // Try to load optional columns (graceful degradation if columns don't exist yet)
-  const allClientIdsForExtra = clients.map(c => c.id)
-  let extraMap = {}
-  if (allClientIdsForExtra.length > 0) {
-    const extraRes = await supabase
-      .from('clients').select('id, address, tax_status, other_debt').in('id', allClientIdsForExtra)
-    if (!extraRes.error && extraRes.data) {
-      for (const e of extraRes.data) extraMap[e.id] = e
-    } else {
-      const extraRes2 = await supabase
-        .from('clients').select('id, address, tax_status').in('id', allClientIdsForExtra)
-      if (!extraRes2.error && extraRes2.data) {
-        for (const e of extraRes2.data) extraMap[e.id] = e
-      }
-    }
-  }
+  const extraMap = {}
+  for (const c of clients) extraMap[c.id] = c
 
   const activeOwnedClients = (ownedClients || []).filter(c => (c.status || 'active') === 'active')
   const activeSecondaryClients = (secondaryClientRecords || []).filter(c => (c.status || 'active') === 'active')
