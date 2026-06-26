@@ -37,11 +37,16 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
   const [toggling,     setToggling]     = useState(null)
   const [panel,        setPanel]        = useState(defaultPanel)
   const [extraRows,    setExtraRows]    = useState([])
+  const [b1Label,      setB1Label]      = useState('')
+  const [b1Amount,     setB1Amount]     = useState('')
   const [debtType,     setDebtType]     = useState('ketoan')
   const [debtAmount,   setDebtAmount]   = useState('')
   const [debtNote,     setDebtNote]     = useState('')
   const [savingDebt,   setSavingDebt]   = useState(false)
   const [debtHistory,  setDebtHistory]  = useState(null)
+  const [oldDebtAmount, setOldDebtAmount] = useState('')
+  const [oldDebtNote,   setOldDebtNote]   = useState('')
+  const [savingOldDebt, setSavingOldDebt] = useState(false)
   const [creds,        setCreds]        = useState([])
   const [credsLoading, setCredsLoading] = useState(false)
   const [editCred,     setEditCred]     = useState(null)
@@ -166,7 +171,11 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
       setDebtNote('')
       loadDebtHistory()
     }
-    if (p === 'dntt') setExtraRows([])
+    if (p === 'dntt') {
+      setExtraRows([])
+      setB1Label('Phí dịch vụ kế toán T' + clientMonth + '/' + selYear + ' (chưa VAT)')
+      setB1Amount(String(client.monthly_fee || ''))
+    }
     if (p === 'info') { setEditCred(null); setShowHistory(false); loadCreds() }
     if (p === 'files') { setFileError(''); loadFiles() }
   }
@@ -235,6 +244,35 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
     setSavingDebt(false)
   }
 
+  const saveOldDebt = async () => {
+    if (!oldDebtAmount) return
+    setSavingOldDebt(true)
+    try {
+      const supabase = createClient()
+      const { data: sd } = await supabase.auth.getSession()
+      const userId = sd.session ? sd.session.user.id : null
+      const paid = Number(String(oldDebtAmount).replace(/\D/g, ''))
+
+      const res = await fetch('/api/admin/save-old-debt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientId: client.id, amount: paid, note: oldDebtNote || null, createdBy: userId }),
+      })
+      const json = await res.json()
+      if (json.error) {
+        alert('Lưu thất bại: ' + json.error)
+        setSavingOldDebt(false)
+        return
+      }
+      setOldDebtAmount(''); setOldDebtNote('')
+      await loadDebtHistory()
+      if (onDebtSaved) onDebtSaved()
+    } catch (e) {
+      alert('Lưu thất bại, vui lòng thử lại')
+    }
+    setSavingOldDebt(false)
+  }
+
   const toggleTask = async (task) => {
     setToggling(task.id)
     const supabase = createClient()
@@ -267,7 +305,8 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
   const days = Array.from(new Set(tasks.map(t => t.deadline_day))).sort((a,b)=>a-b)
 
   const extraTotal = extraRows.reduce((s, r) => s + (Number(r.amount)||0), 0)
-  const subTotal   = (Number(client.monthly_fee)||0) + extraTotal
+  const b1AmountNum = Number(b1Amount) || 0
+  const subTotal   = b1AmountNum + extraTotal
   const vatAmt     = Math.round(subTotal * 0.08)
   const totalB     = subTotal + vatAmt
   const prevBal    = Number(client.other_debt) || 0
@@ -506,6 +545,8 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
             <button onClick={() => {
               const url = '/api/admin/dntt?clientId=' + client.id +
                 '&month=' + clientMonth + '&year=' + selYear +
+                '&b1Label=' + encodeURIComponent(b1Label) +
+                '&b1Amount=' + encodeURIComponent(b1AmountNum) +
                 (extraRows.filter(r=>r.desc||r.amount).length > 0
                   ? '&extra=' + encodeURIComponent(JSON.stringify(extraRows.filter(r=>r.desc||r.amount)))
                   : '')
@@ -535,10 +576,18 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
                   <td className="border border-gray-200 px-2 py-1 font-semibold">Phí phát sinh kỳ này</td>
                   <td className="border border-gray-200 px-2 py-1 text-right font-bold">{fmt(totalB)}</td>
                 </tr>
-                <tr>
+                <tr className="bg-indigo-50/50">
                   <td className="border border-gray-200 px-2 py-1 text-center text-gray-500">B1</td>
-                  <td className="border border-gray-200 px-2 py-1">Phí dịch vụ kế toán T{clientMonth}/{selYear} (chưa VAT)</td>
-                  <td className="border border-gray-200 px-2 py-1 text-right">{fmt(client.monthly_fee)}</td>
+                  <td className="border border-gray-200 px-1 py-0.5">
+                    <input value={b1Label} onChange={e => setB1Label(e.target.value)}
+                      className="w-full px-1.5 py-0.5 border border-indigo-200 rounded text-xs focus:outline-none focus:ring-1 focus:ring-indigo-400" />
+                  </td>
+                  <td className="border border-gray-200 px-1 py-0.5">
+                    <input type="text" inputMode="numeric"
+                      value={b1Amount ? Number(b1Amount).toLocaleString('vi-VN') : ''}
+                      onChange={e => setB1Amount(e.target.value.replace(/\D/g,''))}
+                      className="w-full px-1.5 py-0.5 border border-indigo-200 rounded text-xs text-right focus:outline-none focus:ring-1 focus:ring-indigo-400" />
+                  </td>
                 </tr>
                 {extraRows.map((r, i) => (
                   <tr key={i} className="bg-indigo-50">
@@ -595,6 +644,7 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
             {[
               { key: 'ketoan', label: '📋 Dịch vụ kế toán', hint: fmt(client.monthly_fee) + 'đ/tháng' },
               { key: 'khach',  label: '🗂 Dịch vụ khác',    hint: 'Phát sinh khác' },
+              { key: 'no_ton', label: '📦 Nợ tồn cũ',       hint: fmt(client.other_debt) + 'đ còn nợ' },
             ].map(t => (
               <button key={t.key} onClick={() => { setDebtType(t.key); setDebtAmount(''); setDebtNote('') }}
                 className={'flex-1 py-2 text-xs font-semibold transition-colors border-b-2 ' +
@@ -606,6 +656,54 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
               </button>
             ))}
           </div>
+          {debtType === 'no_ton' ? (
+            <div className="p-3 space-y-2">
+              <div className={'flex justify-between items-center px-3 py-2 rounded-lg text-xs ' +
+                (Number(client.other_debt) > 0 ? 'bg-orange-50' : 'bg-green-50')}>
+                <span className="text-gray-500">Nợ tồn cũ hiện tại (tách biệt phí tháng này):</span>
+                <span className={'font-bold ' + (Number(client.other_debt) > 0 ? 'text-orange-600' : 'text-green-600')}>
+                  {fmt(client.other_debt)}đ
+                </span>
+              </div>
+              <div className="flex gap-2 items-end">
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500 mb-0.5 block">Số tiền thu hồi nợ tồn cũ (đ)</label>
+                  <input type="text" inputMode="numeric" autoFocus
+                    value={oldDebtAmount ? Number(oldDebtAmount.replace(/\D/g,'')||0).toLocaleString('vi-VN') : ''}
+                    onChange={e => setOldDebtAmount(e.target.value.replace(/\D/g,''))}
+                    placeholder="Nhập số tiền đã thu..."
+                    className="w-full px-2.5 py-1.5 border border-green-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-400" />
+                  {oldDebtAmount && Number(oldDebtAmount) > Number(client.other_debt) && (
+                    <p className="text-xs text-orange-500 mt-0.5">⚠ Vượt số nợ tồn còn lại — chỉ ghi nhận tối đa {fmt(client.other_debt)}đ</p>
+                  )}
+                </div>
+                <button onClick={saveOldDebt} disabled={savingOldDebt || !oldDebtAmount}
+                  className="px-4 py-1.5 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition-colors flex-shrink-0">
+                  {savingOldDebt ? '...' : '✓ Lưu'}
+                </button>
+              </div>
+              <input type="text" value={oldDebtNote} onChange={e => setOldDebtNote(e.target.value)}
+                placeholder="Ghi chú: ngày chuyển khoản, số HĐ, kênh..."
+                className="w-full px-2.5 py-1.5 border border-green-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-green-400" />
+              {debtHistory && (() => {
+                const filtered = debtHistory.filter(h => h.type === 'no_ton')
+                return filtered.length > 0 ? (
+                  <div className="mt-1 border-t border-gray-100 pt-2">
+                    <p className="text-xs text-gray-400 font-semibold mb-1.5">Lịch sử thu nợ tồn:</p>
+                    <div className="space-y-1">
+                      {filtered.map((h, i) => (
+                        <div key={i} className="flex items-center gap-2 text-xs py-1.5 px-2 bg-gray-50 rounded-lg">
+                          <span className="text-gray-500 font-medium w-14 flex-shrink-0">T{h.month}/{h.year}</span>
+                          <span className="font-bold text-green-600">{fmt(h.amount)}đ</span>
+                          {h.note && <span className="text-gray-400 truncate flex-1 italic">{h.note}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : <p className="text-xs text-gray-400 text-center py-2">Chưa có lịch sử thu nợ tồn</p>
+              })()}
+            </div>
+          ) : (
           <div className="p-3 space-y-2">
             {(() => {
               const fee     = Number(client.monthly_fee) || 0
@@ -714,6 +812,7 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
               ) : <p className="text-xs text-gray-400 text-center py-2">Chưa có lịch sử thu</p>
             })()}
           </div>
+          )}
         </div>
       )}
 

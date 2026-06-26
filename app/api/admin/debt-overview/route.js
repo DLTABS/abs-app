@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { ensureRollovers } from '@/lib/debtRollover'
 
 function getAdmin() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
@@ -18,11 +19,22 @@ export async function GET(request) {
   const [{ data: roomList }, { data: staffList }, { data: clientList }, { data: feesKetoan }, { data: feesKhach }, { data: secondaryRows }] = await Promise.all([
     supabase.from('rooms').select('id, name, type').order('name'),
     supabase.from('staff').select('id, full_name, room_id').order('full_name'),
-    supabase.from('clients').select('id, name, tax_code, monthly_fee, assigned_to, status').eq('status', 'active'),
+    supabase.from('clients').select('id, name, tax_code, monthly_fee, other_debt, assigned_to, status').eq('status', 'active'),
     supabase.from('service_fees').select('client_id, amount').eq('year', year).eq('month', month).eq('type', 'ketoan'),
     supabase.from('service_fees').select('client_id, amount').eq('year', year).eq('month', month).eq('type', 'khach'),
     supabase.from('client_secondary_staff').select('client_id, staff_id'),
   ])
+
+  // Tự động chuyển nợ thiếu của các tháng trước thành nợ tồn — chỉ khi đang xem đúng tháng hiện tại.
+  const now = new Date()
+  if (year === now.getFullYear() && month === now.getMonth() + 1) {
+    const clientIds = (clientList || []).map(c => c.id)
+    await ensureRollovers(supabase, clientIds, year, month)
+    const { data: refreshedDebt } = await supabase.from('clients').select('id, other_debt').in('id', clientIds)
+    const refreshedMap = {}
+    for (const r of (refreshedDebt || [])) refreshedMap[r.id] = r.other_debt
+    for (const c of (clientList || [])) if (refreshedMap[c.id] !== undefined) c.other_debt = refreshedMap[c.id]
+  }
 
   const feeMap = {}
   for (const f of (feesKetoan || [])) feeMap[f.client_id] = Number(f.amount) || 0

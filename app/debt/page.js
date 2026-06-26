@@ -90,6 +90,8 @@ export default function DebtPage() {
   const grandPct = grandFee === 0 ? 0 : Math.round(grandCol / grandFee * 100)
   const grandUnpaid = data.flatMap(r => r.staff.flatMap(s => s.clients)).filter(c => c.collected < c.monthly_fee && c.monthly_fee > 0)
   const grandOverdue = grandUnpaid.filter(() => isMonthPast)
+  const grandOtherDebt = data.flatMap(r => r.staff.flatMap(s => [...s.clients, ...(s.secondaryClients || [])]))
+    .reduce((a, c) => a + (Number(c.other_debt) || 0), 0)
 
   if (checking) return (
     <AppShell>
@@ -124,12 +126,13 @@ export default function DebtPage() {
         ) : (
           <>
             {/* Grand summary */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
               {[
                 { label: 'Tổng phí phát sinh',   val: fmt(grandFee) + 'đ',                      cls: 'text-gray-900' },
                 { label: 'Đã thu',                val: fmt(grandCol) + 'đ',                      cls: 'text-green-600' },
                 { label: 'Còn phải thu',          val: fmt(grandFee - grandCol) + 'đ',           cls: grandFee - grandCol > 0 ? 'text-red-500' : 'text-green-600' },
                 { label: 'Tỉ lệ thu hồi',         val: grandPct + '%',                           cls: pctClr(grandPct) },
+                { label: 'Nợ tồn cũ (tách biệt)', val: fmt(grandOtherDebt) + 'đ',                cls: grandOtherDebt > 0 ? 'text-orange-500' : 'text-green-600' },
               ].map(c => (
                 <div key={c.label} className="bg-white border border-gray-100 rounded-2xl px-4 py-3">
                   <p className="text-xs text-gray-400 mb-1">{c.label}</p>
@@ -223,6 +226,9 @@ export default function DebtPage() {
                                     <div className="text-right flex-shrink-0">
                                       {st && <span className={'text-xs font-medium px-1.5 py-0.5 rounded-full ' + st.cls}>{st.label}</span>}
                                       <p className="text-xs text-gray-500 mt-0.5">{col > 0 ? fmt(col) + '/' : ''}{fmt(fee)}đ</p>
+                                      {Number(c.other_debt) > 0 && (
+                                        <p className="text-xs text-orange-500 mt-0.5">📦 Nợ tồn cũ: {fmt(c.other_debt)}đ</p>
+                                      )}
                                     </div>
                                   </div>
                                   {col > 0 && col < fee && (

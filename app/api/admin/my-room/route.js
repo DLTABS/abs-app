@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { ensureRollovers } from '@/lib/debtRollover'
 
 function getAdmin() {
   return createClient(
@@ -39,14 +40,14 @@ export async function GET(request) {
     supabase.from('task_definitions').select('*').eq('is_active', true).order('sort_order'),
     supabase.from('client_secondary_staff').select('client_id').eq('staff_id', staffRecord.id),
     supabase.from('clients')
-      .select('id, name, tax_code, monthly_fee, report_type, status, client_code')
+      .select('id, name, tax_code, monthly_fee, other_debt, report_type, status, client_code')
       .eq('assigned_to', staffRecord.id).eq('status', 'active'),
   ])
 
   const secondaryClientIds = (secondaryRows || []).map(r => r.client_id)
   const { data: secondaryClients } = secondaryClientIds.length > 0
     ? await supabase.from('clients')
-        .select('id, name, tax_code, monthly_fee, report_type, status, client_code')
+        .select('id, name, tax_code, monthly_fee, other_debt, report_type, status, client_code')
         .in('id', secondaryClientIds).eq('status', 'active')
     : { data: [] }
 
@@ -65,6 +66,16 @@ export async function GET(request) {
       taskPct: 100,
       debtPct: 0,
     })
+  }
+
+  // Tự động chuyển nợ thiếu của các tháng trước thành nợ tồn — chỉ khi đang xem đúng tháng hiện tại.
+  const nowDt = new Date()
+  if (year === nowDt.getFullYear() && month === nowDt.getMonth() + 1) {
+    await ensureRollovers(supabase, clientIds, year, month)
+    const { data: refreshedDebt } = await supabase.from('clients').select('id, other_debt').in('id', clientIds)
+    const refreshedMap = {}
+    for (const r of (refreshedDebt || [])) refreshedMap[r.id] = r.other_debt
+    for (const c of clients) if (refreshedMap[c.id] !== undefined) c.other_debt = refreshedMap[c.id]
   }
 
   const [{ data: taskRecords }, { data: feeKetoan }, { data: feeKhach }] = await Promise.all([

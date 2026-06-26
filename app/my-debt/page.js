@@ -95,6 +95,7 @@ export default function MyDebtPage() {
   const totalRemain = ownedClients.reduce((a, c) => a + c.remain, 0)
   const debtPct     = totalFee === 0 ? 100 : Math.round(totalKetoan / totalFee * 100)
   const unpaidCount = ownedClients.filter(c => !c.isPaid).length
+  const totalOtherDebt = myClients.reduce((a, c) => a + (Number(c.other_debt) || 0), 0)
 
   const filtered = myClients
     .filter(c =>
@@ -144,7 +145,7 @@ export default function MyDebtPage() {
         ) : (
           <>
             {/* KPI tổng quan công nợ */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-5">
               <div className="bg-white border border-gray-100 rounded-2xl px-4 py-3">
                 <p className="text-xs text-gray-400 mb-1">💰 Tổng phí kế toán</p>
                 <p className="text-xl font-bold text-gray-800">{fmt(totalFee)}đ</p>
@@ -154,12 +155,16 @@ export default function MyDebtPage() {
                 <p className="text-xl font-bold text-green-600">{fmt(totalKetoan)}đ</p>
               </div>
               <div className="bg-white border border-gray-100 rounded-2xl px-4 py-3">
-                <p className="text-xs text-gray-400 mb-1">⚠ Còn phải thu</p>
+                <p className="text-xs text-gray-400 mb-1">⚠ Còn phải thu (tháng này)</p>
                 <p className={'text-xl font-bold ' + (totalRemain > 0 ? 'text-orange-500' : 'text-green-600')}>{fmt(totalRemain)}đ</p>
               </div>
               <div className="bg-white border border-gray-100 rounded-2xl px-4 py-3">
                 <p className="text-xs text-gray-400 mb-1">🗂 Dịch vụ khác đã thu</p>
                 <p className="text-xl font-bold text-blue-600">{fmt(totalKhach)}đ</p>
+              </div>
+              <div className="bg-white border border-gray-100 rounded-2xl px-4 py-3">
+                <p className="text-xs text-gray-400 mb-1">📦 Nợ tồn cũ (tách biệt)</p>
+                <p className={'text-xl font-bold ' + (totalOtherDebt > 0 ? 'text-orange-500' : 'text-green-600')}>{fmt(totalOtherDebt)}đ</p>
               </div>
             </div>
 
@@ -221,6 +226,9 @@ export default function MyDebtPage() {
                             <span className="text-xs text-green-600">Đã thu: {fmt(client.collected)}đ</span>
                             {client.collectedKhach > 0 && (
                               <span className="text-xs text-blue-500">Dịch vụ khác: {fmt(client.collectedKhach)}đ</span>
+                            )}
+                            {Number(client.other_debt) > 0 && (
+                              <span className="text-xs text-orange-500">📦 Nợ tồn cũ: {fmt(client.other_debt)}đ</span>
                             )}
                           </div>
                         </div>

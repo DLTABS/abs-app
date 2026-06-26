@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { ensureRollovers } from '@/lib/debtRollover'
 
 function getAdmin() {
   return createClient(
@@ -61,6 +62,17 @@ export async function GET(request) {
   if (clientIds.length === 0) {
     const staffData = staffList.map(s => ({ ...s, clientCount: 0, clients: [], taskPct: 100, debtPct: 0, totalTasks: 0, doneTasks: 0, totalFee: 0, collectedFee: 0 }))
     return Response.json({ room, staff: staffData, totals: { taskPct: 100, debtPct: 0, clientCount: 0, doneTasks: 0, totalTasks: 0, totalFee: 0, collected: 0 }, taskDefs: taskDefs || [] })
+  }
+
+  // Tự động chuyển nợ thiếu của các tháng trước thành nợ tồn — chỉ khi đang xem đúng tháng hiện tại.
+  const nowDt = new Date()
+  if (year === nowDt.getFullYear() && month === nowDt.getMonth() + 1) {
+    await ensureRollovers(supabase, clientIds, year, month)
+    // other_debt có thể vừa được cập nhật bởi ensureRollovers — refetch để extraMap không bị stale
+    const { data: refreshedDebt } = await supabase.from('clients').select('id, other_debt').in('id', clientIds)
+    for (const r of (refreshedDebt || [])) {
+      if (extraMap[r.id]) extraMap[r.id].other_debt = r.other_debt
+    }
   }
 
   // task_records + fee_collections for selected month (both types)

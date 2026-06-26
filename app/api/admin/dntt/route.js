@@ -15,6 +15,8 @@ export async function GET(request) {
   // Extra rows passed from UI panel: [{desc, amount}]
   let extraRows = []
   try { extraRows = JSON.parse(searchParams.get('extra') || '[]') } catch (_) {}
+  const b1LabelParam  = searchParams.get('b1Label')
+  const b1AmountParam = searchParams.get('b1Amount')
 
   if (!clientId) return new Response('Missing clientId', { status: 400 })
 
@@ -30,8 +32,9 @@ export async function GET(request) {
   const { data: staff } = await supabase
     .from('staff').select('full_name').eq('id', client.assigned_to).single()
 
-  // Phí chưa bao gồm VAT
-  const baseFee    = Number(client.monthly_fee) || 0
+  // Phí chưa bao gồm VAT — B1 mặc định = phí dịch vụ kế toán tháng đó, nhưng có thể sửa tay từ panel ĐNTT
+  const baseFee   = b1AmountParam !== null && b1AmountParam !== '' ? Number(b1AmountParam) || 0 : Number(client.monthly_fee) || 0
+  const b1Label    = b1LabelParam || ('Phí dịch vụ kế toán ' + 'Tháng ' + month + '/' + year + ' (chưa VAT)')
   const extraTotal = extraRows.reduce((s, r) => s + (Number(r.amount) || 0), 0)
   const subTotal   = baseFee + extraTotal        // tổng trước VAT (B1 + B2...B7)
   const vatAmt     = Math.round(subTotal * 0.08) // VAT trên toàn bộ
@@ -157,7 +160,7 @@ export async function GET(request) {
       </tr>
       <tr>
         <td class="ca">B1</td>
-        <td>Phí dịch vụ kế toán ${monthLabel} (chưa VAT)</td>
+        <td>${b1Label}</td>
         <td class="ra" id="b1amt">${fmt(baseFee)} đ</td>
         <td class="ca">${dayStr}</td><td></td>
       </tr>
