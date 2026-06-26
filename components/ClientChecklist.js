@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 
 const fmt    = (n) => Number(n || 0).toLocaleString('vi-VN')
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString('vi-VN') : ''
 const pctClr = (v) => v >= 90 ? 'text-green-600' : v >= 70 ? 'text-yellow-500' : 'text-red-500'
 const barClr = (v) => v >= 90 ? 'bg-green-500'   : v >= 70 ? 'bg-yellow-400'   : 'bg-red-400'
 
@@ -693,6 +694,7 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
                       {filtered.map((h, i) => (
                         <div key={i} className="flex items-center gap-2 text-xs py-1.5 px-2 bg-gray-50 rounded-lg">
                           <span className="text-gray-500 font-medium w-14 flex-shrink-0">T{h.month}/{h.year}</span>
+                          <span className="text-gray-400 w-20 flex-shrink-0">📅 {fmtDate(h.created_at)}</span>
                           <span className="font-bold text-green-600">{fmt(h.amount)}đ</span>
                           {h.note && <span className="text-gray-400 truncate flex-1 italic">{h.note}</span>}
                         </div>
@@ -797,6 +799,7 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
                     {filtered.map((h, i) => (
                       <div key={i} className="flex items-center gap-2 text-xs py-1.5 px-2 bg-gray-50 rounded-lg">
                         <span className="text-gray-500 font-medium w-14 flex-shrink-0">T{h.month}/{h.year}</span>
+                        <span className="text-gray-400 w-20 flex-shrink-0">📅 {fmtDate(h.created_at)}</span>
                         <span className={'font-bold ' + (debtType === 'ketoan' && h.amount >= client.monthly_fee ? 'text-green-600' : 'text-blue-600')}>
                           {fmt(h.amount)}đ
                         </span>
