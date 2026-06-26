@@ -936,7 +936,7 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
                         className={'w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-gray-50 ' +
                           (isDone ? 'bg-white' : '')}>
                         <button onClick={() => toggleTask(t)} disabled={isBusy || isDone}
-                          className="flex items-center gap-2.5 flex-1 min-w-0 disabled:cursor-default">
+                          className="flex items-center gap-2.5 flex-1 min-w-0 text-left disabled:cursor-default">
                           {isBusy ? (
                             <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
                               <div className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
