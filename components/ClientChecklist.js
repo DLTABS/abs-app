@@ -275,9 +275,9 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
 
   const toggleTask = async (task) => {
     const isDone = task.status.startsWith('done')
-    // Không cho bỏ check khi đã check rồi (tránh mất dấu hoàn thành đúng hạn gốc) —
-    // chỉ Quản trị mới được phép uncheck để sửa nhầm.
-    if (isDone && !isAdmin) return
+    // Không ai được bỏ check khi đã check rồi (tránh mất dấu hoàn thành đúng hạn gốc) —
+    // Quản trị sửa trạng thái sai qua nút "Sửa đúng hạn" riêng, không qua checkbox.
+    if (isDone) return
 
     setToggling(task.id)
     const supabase = createClient()
@@ -307,13 +307,11 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
   const overrideToOnTime = async (task) => {
     if (!task.rec) return
     setToggling(task.id)
-    const lastDay = new Date(selYear, clientMonth, 0).getDate()
-    const deadlineDate = new Date(selYear, clientMonth - 1, Math.min(task.deadline_day, lastDay))
     try {
       const res = await fetch('/api/admin/task-override', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recordId: task.rec.id, deadlineDate: deadlineDate.toISOString() }),
+        body: JSON.stringify({ recordId: task.rec.id, year: selYear, month: clientMonth, deadlineDay: task.deadline_day }),
       })
       const json = await res.json()
       if (json.error) alert('Sửa thất bại: ' + json.error)
@@ -933,11 +931,10 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
                     const st = STATUS_STYLE[t.status] || STATUS_STYLE.pending
                     const isDone = t.status.startsWith('done')
                     const isBusy = toggling === t.id
-                    const lockedDone = isDone && !isAdmin
                     return (
-                      <button key={t.id} onClick={() => toggleTask(t)} disabled={isBusy || lockedDone}
+                      <button key={t.id} onClick={() => toggleTask(t)} disabled={isBusy || isDone}
                         className={'w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-gray-50 disabled:opacity-100 ' +
-                          (isDone ? 'bg-white' : '') + (lockedDone ? ' cursor-default' : '')}>
+                          (isDone ? 'bg-white cursor-default' : '')}>
                         {isBusy ? (
                           <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
                             <div className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />

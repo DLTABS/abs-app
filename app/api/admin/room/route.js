@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { ensureRollovers } from '@/lib/debtRollover'
+import { effectiveDeadlineDate } from '@/lib/deadline'
 
 function getAdmin() {
   return createClient(
@@ -91,12 +92,9 @@ export async function GET(request) {
   const feeKhachMap = {}
   for (const f of (feeKhach || [])) feeKhachMap[f.client_id] = Number(f.amount) || 0
 
-  // Deadline date helper: deadline_day of selected month/year
-  // Giới hạn ngày hạn không vượt quá số ngày thực có của tháng (VD: ngày 30 ở tháng 2 -> ngày 28/29)
-  const deadlineDate = (deadlineDay) => {
-    const lastDay = new Date(year, month, 0).getDate()
-    return new Date(year, month - 1, Math.min(deadlineDay, lastDay))
-  }
+  // Deadline date helper: deadline_day of selected month/year — clamp về số ngày thực có
+  // của tháng + dời sang thứ 2 nếu rơi Chủ nhật.
+  const deadlineDate = (deadlineDay) => effectiveDeadlineDate(year, month, deadlineDay)
   const daysLate = (doneAt, deadlineDay) => {
     if (!doneAt) return null
     const done = new Date(doneAt)

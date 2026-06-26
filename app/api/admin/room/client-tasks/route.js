@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { effectiveDeadlineDate } from '@/lib/deadline'
 
 function getAdmin() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
@@ -50,11 +51,8 @@ export async function GET(request) {
 
   // Calculate status for each task
   const today = new Date()
-  // Giới hạn ngày hạn không vượt quá số ngày thực có của tháng (VD: ngày 30 ở tháng 2 -> ngày 28/29)
-  const deadlineDate = (day) => {
-    const lastDay = new Date(year, month, 0).getDate()
-    return new Date(year, month - 1, Math.min(day, lastDay))
-  }
+  // Giới hạn ngày hạn không vượt quá số ngày thực có của tháng + dời sang thứ 2 nếu rơi Chủ nhật
+  const deadlineDate = (day) => effectiveDeadlineDate(year, month, day)
   const daysLate = (doneAt, day) => {
     if (!doneAt) return null
     return Math.floor((new Date(doneAt) - deadlineDate(day)) / 86400000)

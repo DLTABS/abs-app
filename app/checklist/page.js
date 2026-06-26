@@ -47,6 +47,7 @@ export default function ChecklistPage() {
   }
 
   const [userId, setUserId] = useState(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     const init = async () => {
@@ -54,6 +55,8 @@ export default function ChecklistPage() {
       const { data: sd } = await supabase.auth.getSession()
       if (!sd.session) { router.push('/login'); return }
       setUserId(sd.session.user.id)
+      const { data: me } = await supabase.from('staff').select('role').eq('id', sd.session.user.id).single()
+      setIsAdmin(['admin', 'leader', 'manager'].includes(me?.role))
     }
     init()
   }, [router])
@@ -215,6 +218,7 @@ export default function ChecklistPage() {
                             setClientMonth(p => ({ ...p, [client.id]: newMonth }))
                           }
                           onDebtSaved={loadMyData}
+                          isAdmin={isAdmin}
                         />
                       )}
                     </div>
