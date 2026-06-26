@@ -426,10 +426,10 @@ export default function RoomPage({ params }) {
 
               const debtStatus = (ketoan, fee) => {
                 if (fee === 0) return { label: '—', color: 'text-gray-400', bg: '', dot: 'bg-gray-200' }
-                if (ketoan >= fee) return { label: 'Đã thu đủ',    color: 'text-green-700', bg: 'bg-green-50',  dot: 'bg-green-500' }
-                if (ketoan > 0)   return { label: 'Thu một phần', color: 'text-yellow-700', bg: 'bg-yellow-50', dot: 'bg-yellow-400' }
-                if (isMonthPast)  return { label: 'Quá hạn',      color: 'text-red-700',   bg: 'bg-red-50',    dot: 'bg-red-500' }
-                return               { label: 'Chưa thu',         color: 'text-gray-500',  bg: '',             dot: 'bg-gray-300' }
+                if (ketoan >= fee) return { label: '✅ Đã thu đủ',    color: 'text-green-700', bg: 'bg-green-50',  dot: 'bg-green-500' }
+                if (ketoan > 0)   return { label: '⚠️ Thu một phần', color: 'text-yellow-700', bg: 'bg-yellow-50', dot: 'bg-yellow-400' }
+                if (isMonthPast)  return { label: '🔴 Quá hạn',      color: 'text-red-700',   bg: 'bg-red-50',    dot: 'bg-red-500' }
+                return               { label: '❌ Chưa thu',         color: 'text-red-600',  bg: 'bg-red-50',    dot: 'bg-red-400' }
               }
 
               return (
