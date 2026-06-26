@@ -932,41 +932,45 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
                     const isDone = t.status.startsWith('done')
                     const isBusy = toggling === t.id
                     return (
-                      <button key={t.id} onClick={() => toggleTask(t)} disabled={isBusy || isDone}
-                        className={'w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-gray-50 disabled:opacity-100 ' +
-                          (isDone ? 'bg-white cursor-default' : '')}>
-                        {isBusy ? (
-                          <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
-                            <div className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                          </div>
-                        ) : (
-                          <div className={'w-5 h-5 rounded-md flex-shrink-0 flex items-center justify-center border-2 transition-all ' +
-                            (isDone
-                              ? st.bg + ' border-transparent'
-                              : t.status === 'overdue' ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white')}>
-                            {isDone && (
-                              <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
-                          </div>
-                        )}
-                        <span className={'flex-1 text-xs ' +
-                          (isDone ? 'line-through text-gray-400' : t.status === 'overdue' ? 'text-red-600 font-medium' : 'text-gray-700')}>
-                          {t.name}
-                        </span>
+                      <div key={t.id}
+                        className={'w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-gray-50 ' +
+                          (isDone ? 'bg-white' : '')}>
+                        <button onClick={() => toggleTask(t)} disabled={isBusy || isDone}
+                          className="flex items-center gap-2.5 flex-1 min-w-0 disabled:cursor-default">
+                          {isBusy ? (
+                            <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+                              <div className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
+                            </div>
+                          ) : (
+                            <div className={'w-5 h-5 rounded-md flex-shrink-0 flex items-center justify-center border-2 transition-all ' +
+                              (isDone
+                                ? st.bg + ' border-transparent'
+                                : t.status === 'overdue' ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white')}>
+                              {isDone && (
+                                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                          )}
+                          <span className={'flex-1 text-xs truncate ' +
+                            (isDone ? 'line-through text-gray-400' : t.status === 'overdue' ? 'text-red-600 font-medium' : 'text-gray-700')}>
+                            {t.name}
+                          </span>
+                        </button>
                         <span className={'text-xs flex-shrink-0 ' + st.text}>
                           {isDone && t.rec && t.rec.done_at
                             ? new Date(t.rec.done_at).toLocaleDateString('vi-VN', {day:'2-digit',month:'2-digit'})
                             : st.label}
                         </span>
                         {isAdmin && (t.status === 'done_late1' || t.status === 'done_late3') && (
-                          <span title="Sửa thành đúng hạn" onClick={(e) => { e.stopPropagation(); overrideToOnTime(t) }}
-                            className="text-xs flex-shrink-0 text-blue-500 hover:text-blue-700 underline">
+                          <button type="button" disabled={isBusy} title="Sửa thành đúng hạn"
+                            onClick={() => overrideToOnTime(t)}
+                            className="text-xs flex-shrink-0 text-blue-500 hover:text-blue-700 underline disabled:opacity-50">
                             Sửa đúng hạn
-                          </span>
+                          </button>
                         )}
-                      </button>
+                      </div>
                     )
                   })}
                 </div>
