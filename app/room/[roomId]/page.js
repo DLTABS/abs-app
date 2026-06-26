@@ -362,7 +362,7 @@ export default function RoomPage({ params }) {
                               className="w-full px-4 py-2.5 flex items-center justify-between hover:bg-gray-50 transition-colors text-left">
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-1.5 flex-wrap">
-                                  <p className="text-sm font-medium text-gray-800 truncate">{c.name}</p>
+                                  <p className="text-sm font-medium text-gray-800 break-words">{c.name}</p>
                                   <span className={'text-xs font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 border ' +
                                     (c.report_type === 'quarterly'
                                       ? 'bg-purple-100 text-purple-700 border-purple-300'
@@ -520,7 +520,7 @@ export default function RoomPage({ params }) {
                                   <div className="min-w-0 flex-1">
                                     <div className="flex items-center gap-1.5 flex-wrap">
                                       <span className={'w-2 h-2 rounded-full flex-shrink-0 mt-0.5 ' + st.dot} />
-                                      <p className="text-sm font-medium text-gray-800 truncate">{c.name}</p>
+                                      <p className="text-sm font-medium text-gray-800 break-words">{c.name}</p>
                                       <span className={'text-xs font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 border ' +
                                         (c.report_type === 'quarterly'
                                           ? 'bg-purple-100 text-purple-700 border-purple-300'

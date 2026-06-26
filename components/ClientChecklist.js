@@ -935,16 +935,16 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
                     const isBusy = toggling === t.id
                     return (
                       <div key={t.id}
-                        className={'w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-gray-50 ' +
+                        className={'w-full flex items-start gap-2.5 px-3 py-2 text-left transition-colors hover:bg-gray-50 flex-wrap ' +
                           (isDone ? 'bg-white' : '')}>
                         <button onClick={() => toggleTask(t)} disabled={isBusy || isDone}
-                          className="flex items-center gap-2.5 flex-1 min-w-0 text-left disabled:cursor-default">
+                          className="flex items-start gap-2.5 flex-1 min-w-[140px] text-left disabled:cursor-default">
                           {isBusy ? (
                             <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
                               <div className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
                             </div>
                           ) : (
-                            <div className={'w-5 h-5 rounded-md flex-shrink-0 flex items-center justify-center border-2 transition-all ' +
+                            <div className={'w-5 h-5 rounded-md flex-shrink-0 flex items-center justify-center border-2 transition-all mt-0.5 ' +
                               (isDone
                                 ? st.bg + ' border-transparent'
                                 : t.status === 'overdue' ? 'border-red-300 bg-red-50' : 'border-gray-300 bg-white')}>
@@ -955,23 +955,25 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
                               )}
                             </div>
                           )}
-                          <span className={'flex-1 text-xs truncate ' +
+                          <span className={'flex-1 text-xs break-words ' +
                             (isDone ? 'line-through text-gray-400' : t.status === 'overdue' ? 'text-red-600 font-medium' : 'text-gray-700')}>
                             {t.name}
                           </span>
                         </button>
-                        <span className={'text-xs flex-shrink-0 ' + st.text}>
-                          {isDone && t.rec && t.rec.done_at
-                            ? new Date(t.rec.done_at).toLocaleDateString('vi-VN', {day:'2-digit',month:'2-digit'})
-                            : st.label}
-                        </span>
-                        {isAdmin && (t.status === 'done_late1' || t.status === 'done_late3') && (
-                          <button type="button" disabled={isBusy} title="Sửa thành đúng hạn"
-                            onClick={() => overrideToOnTime(t)}
-                            className="text-xs flex-shrink-0 text-blue-500 hover:text-blue-700 underline disabled:opacity-50">
-                            Sửa đúng hạn
-                          </button>
-                        )}
+                        <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+                          <span className={'text-xs flex-shrink-0 ' + st.text}>
+                            {isDone && t.rec && t.rec.done_at
+                              ? new Date(t.rec.done_at).toLocaleDateString('vi-VN', {day:'2-digit',month:'2-digit'})
+                              : st.label}
+                          </span>
+                          {isAdmin && (t.status === 'done_late1' || t.status === 'done_late3') && (
+                            <button type="button" disabled={isBusy} title="Sửa thành đúng hạn"
+                              onClick={() => overrideToOnTime(t)}
+                              className="text-xs flex-shrink-0 text-blue-500 hover:text-blue-700 underline disabled:opacity-50">
+                              Sửa đúng hạn
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )
                   })}

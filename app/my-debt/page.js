@@ -259,7 +259,7 @@ export default function MyDebtPage() {
                         className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors text-left">
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-sm font-semibold text-gray-900 truncate">{client.name}</p>
+                            <p className="text-sm font-semibold text-gray-900 break-words">{client.name}</p>
                             <span className={'text-xs font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 border ' +
                               (client.report_type === 'quarterly'
                                 ? 'bg-purple-100 text-purple-700 border-purple-300'
