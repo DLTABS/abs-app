@@ -31,7 +31,7 @@ const CRED_CATS = [
   { key: 'khac',         label: 'Thông tin khác' },
 ]
 
-export default function ClientChecklist({ client, clientMonth, onMonthChange, onDebtSaved, defaultPanel = 'work' }) {
+export default function ClientChecklist({ client, clientMonth, onMonthChange, onDebtSaved, defaultPanel = 'work', isAdmin = false }) {
   const now = new Date()
   const [tasks,        setTasks]        = useState([])
   const [loading,      setLoading]      = useState(false)
@@ -274,11 +274,15 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
   }
 
   const toggleTask = async (task) => {
+    const isDone = task.status.startsWith('done')
+    // Không cho bỏ check khi đã check rồi (tránh mất dấu hoàn thành đúng hạn gốc) —
+    // chỉ Quản trị mới được phép uncheck để sửa nhầm.
+    if (isDone && !isAdmin) return
+
     setToggling(task.id)
     const supabase = createClient()
     const { data: sd } = await supabase.auth.getSession()
     const userId = sd.session ? sd.session.user.id : null
-    const isDone = task.status.startsWith('done')
 
     const res = await fetch('/api/admin/task-toggle', {
       method: 'POST',
@@ -297,6 +301,27 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
     if (json.error) console.error('Toggle error:', json.error)
     setToggling(null)
     await loadTasks()
+  }
+
+  // Quản trị sửa 1 task "Hoàn thành trễ hạn" → "Hoàn thành đúng hạn" (chỉnh done_at về đúng ngày hạn)
+  const overrideToOnTime = async (task) => {
+    if (!task.rec) return
+    setToggling(task.id)
+    const lastDay = new Date(selYear, clientMonth, 0).getDate()
+    const deadlineDate = new Date(selYear, clientMonth - 1, Math.min(task.deadline_day, lastDay))
+    try {
+      const res = await fetch('/api/admin/task-override', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recordId: task.rec.id, deadlineDate: deadlineDate.toISOString() }),
+      })
+      const json = await res.json()
+      if (json.error) alert('Sửa thất bại: ' + json.error)
+      await loadTasks()
+    } catch (_) {
+      alert('Sửa thất bại, vui lòng thử lại')
+    }
+    setToggling(null)
   }
 
   const doneTasks  = tasks.filter(t => t.status === 'done_ontime').length
@@ -908,10 +933,11 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
                     const st = STATUS_STYLE[t.status] || STATUS_STYLE.pending
                     const isDone = t.status.startsWith('done')
                     const isBusy = toggling === t.id
+                    const lockedDone = isDone && !isAdmin
                     return (
-                      <button key={t.id} onClick={() => toggleTask(t)} disabled={isBusy}
-                        className={'w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-gray-50 disabled:opacity-60 ' +
-                          (isDone ? 'bg-white' : '')}>
+                      <button key={t.id} onClick={() => toggleTask(t)} disabled={isBusy || lockedDone}
+                        className={'w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors hover:bg-gray-50 disabled:opacity-100 ' +
+                          (isDone ? 'bg-white' : '') + (lockedDone ? ' cursor-default' : '')}>
                         {isBusy ? (
                           <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
                             <div className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
@@ -937,6 +963,12 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
                             ? new Date(t.rec.done_at).toLocaleDateString('vi-VN', {day:'2-digit',month:'2-digit'})
                             : st.label}
                         </span>
+                        {isAdmin && (t.status === 'done_late1' || t.status === 'done_late3') && (
+                          <span title="Sửa thành đúng hạn" onClick={(e) => { e.stopPropagation(); overrideToOnTime(t) }}
+                            className="text-xs flex-shrink-0 text-blue-500 hover:text-blue-700 underline">
+                            Sửa đúng hạn
+                          </span>
+                        )}
                       </button>
                     )
                   })}

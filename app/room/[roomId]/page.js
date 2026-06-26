@@ -43,6 +43,7 @@ export default function RoomPage({ params }) {
   const [ready,     setReady]     = useState(false)
   const [loading,   setLoading]   = useState(false)
   const [forbidden, setForbidden] = useState(false)
+  const [isAdmin,   setIsAdmin]   = useState(false)
   const [openStaff,   setOpenStaff]   = useState({})  // staffId → bool
   const [openClient,  setOpenClient]  = useState({})  // clientId → bool
   const [clientMonth, setClientMonth] = useState({})  // clientId → month number
@@ -70,6 +71,7 @@ export default function RoomPage({ params }) {
           || (email === 'admin@savitax.vn' ? 'admin' : 'staff')
       }
       if (!['admin', 'leader', 'manager'].includes(role) && myRoomId !== roomId) setForbidden(true)
+      setIsAdmin(['admin', 'leader', 'manager'].includes(role))
       setReady(true)
     }
     check()
@@ -389,6 +391,7 @@ export default function RoomPage({ params }) {
                                 clientMonth={clientMonth[c.id] || selMonth}
                                 onMonthChange={m => setClientMonth(p => ({ ...p, [c.id]: m }))}
                                 onDebtSaved={refreshDebtFees}
+                                isAdmin={isAdmin}
                               />
                             )}
                           </div>
