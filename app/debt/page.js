@@ -130,7 +130,7 @@ export default function DebtPage() {
             <h1 className="text-xl font-bold text-gray-900">Công nợ toàn công ty</h1>
             <p className="text-sm text-gray-400 mt-0.5">Theo dõi thu hồi phí dịch vụ kế toán</p>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
             <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
               {PERIODS.map(p => (
                 <button key={p.v} onClick={() => setPeriod(p.v)}

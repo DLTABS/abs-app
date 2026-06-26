@@ -580,7 +580,8 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
             </button>
           </div>
           <div className="p-3 text-xs">
-            <table className="w-full border-collapse text-xs">
+            <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-xs min-w-[480px]">
               <thead>
                 <tr className="bg-indigo-700 text-white">
                   <th className="border border-indigo-600 px-2 py-1 w-10">Mã</th>
@@ -645,7 +646,8 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
                 </tr>
               </tbody>
             </table>
-            <div className="flex items-center gap-2 mt-2">
+            </div>
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
               <button onClick={() => setExtraRows([...extraRows, {desc:'', amount:''}])}
                 disabled={extraRows.length >= 6}
                 className="text-xs px-3 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-lg hover:bg-indigo-100 disabled:opacity-40 transition-colors font-medium">

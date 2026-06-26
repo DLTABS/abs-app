@@ -26,7 +26,7 @@ export default function AppShell({ children }) {
             className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             onClick={() => setDrawerOpen(false)}
           />
-          <aside className="absolute left-0 top-0 bottom-0 w-64 shadow-xl">
+          <aside className="absolute left-0 top-0 bottom-0 w-64 max-w-[80vw] shadow-xl">
             <Sidebar onClose={() => setDrawerOpen(false)} />
           </aside>
         </div>

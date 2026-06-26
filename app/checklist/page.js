@@ -191,7 +191,7 @@ export default function ChecklistPage() {
                               <span className="text-xs bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded-full flex-shrink-0">Phụ trách phụ</span>
                             )}
                           </div>
-                          <div className="flex items-center gap-3 mt-1">
+                          <div className="flex items-center gap-3 mt-1 flex-wrap">
                             <span className="text-xs text-gray-400">{client.tax_code}</span>
                             <span className="text-xs font-medium" style={{ color: '#8B1A1A' }}>{fmt(client.monthly_fee)}đ/tháng</span>
                           </div>

@@ -238,7 +238,7 @@ export default function RoomPage({ params }) {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 mb-5 bg-gray-100 p-1 rounded-xl w-fit">
+        <div className="flex gap-1 mb-5 bg-gray-100 p-1 rounded-xl w-fit flex-wrap">
           {[
             { key: 'report', label: 'Báo cáo phòng' },
             { key: 'debt',   label: 'Công nợ phòng' },

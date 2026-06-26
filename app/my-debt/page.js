@@ -142,7 +142,7 @@ export default function MyDebtPage() {
               {unpaidCount > 0 && <span className="text-orange-500 font-medium"> · {unpaidCount} chưa thu đủ</span>}
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
             <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
               {PERIODS.map(p => (
                 <button key={p.v} onClick={() => setPeriod(p.v)}
