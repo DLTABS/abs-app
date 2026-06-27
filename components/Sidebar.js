@@ -239,7 +239,11 @@ export default function Sidebar({ onClose }) {
         <NavItem href="/clients"    icon={<IconStore />}     label="Danh sách công ty"   pathname={pathname} onClose={onClose} />
         <NavItem href="/checklist"  icon={<IconClipboard />} label="Checklist công việc" pathname={pathname} onClose={onClose} />
         <NavItem href="/my-debt"    icon={<IconCoin />}      label="Quản lý công nợ"     pathname={pathname} onClose={onClose} />
-        <NavItem href="/work-log"   icon={<IconJournal />}   label="Nhật ký làm việc"    pathname={pathname} onClose={onClose} />
+        {/* Nhật ký làm việc: để ở menu chính cho người KHÔNG có mục Quản trị (nhân viên/trưởng phòng);
+            với tài khoản quản trị thì hiện trong mục Quản trị bên dưới cho đồng bộ */}
+        {!showAdminSection && (
+          <NavItem href="/work-log" icon={<IconJournal />}  label="Nhật ký làm việc"    pathname={pathname} onClose={onClose} />
+        )}
 
         {canViewKpi && (
           <NavItem href="/report" icon={<IconChart />} label="Báo cáo KPI" pathname={pathname} onClose={onClose} />
@@ -317,6 +321,7 @@ export default function Sidebar({ onClose }) {
             {canViewAllDebt && (
               <NavItem href="/debt"            icon={<IconCoin />}       label="Công nợ toàn công ty"  pathname={pathname} onClose={onClose} />
             )}
+            <NavItem href="/work-log"          icon={<IconJournal />}    label="Nhật ký làm việc"      pathname={pathname} onClose={onClose} />
             {canManageRoles && (
               <NavItem href="/admin/roles"     icon={<IconUsers />}      label="Vai trò & phân quyền"  pathname={pathname} onClose={onClose} />
             )}
