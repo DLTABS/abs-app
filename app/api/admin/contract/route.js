@@ -266,13 +266,18 @@ export async function GET(request) {
     const wordHtml = `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" lang="vi"><head><meta charset="UTF-8">
 <title>Hợp đồng dịch vụ - ${esc(c.name)}</title>
 <style>${baseCss}
-  @page Section1{size:21.0cm 29.7cm;margin:2.4cm 1.8cm 2.0cm 1.8cm;mso-header-margin:0.8cm;mso-footer-margin:0.6cm;mso-header:h1;mso-footer:f1}
+  /* Lề chuẩn hợp đồng: trên 2cm, dưới 2cm, trái 3cm, phải 1.5cm */
+  @page Section1{size:21.0cm 29.7cm;margin:2.0cm 1.5cm 2.0cm 3.0cm;mso-header-margin:1.0cm;mso-footer-margin:0.8cm;mso-header:h1;mso-footer:f1}
   div.Section1{page:Section1}
   p.MsoHeader,p.MsoFooter{margin:0}
+  /* Word KHÔNG hỗ trợ li:before → dùng bullet thật để không mất gạch đầu dòng */
+  ul{list-style:disc;margin:4px 0 6px 24px}
+  li{padding-left:0;position:static}
+  li:before{content:none}
 </style></head><body>
+  <div class="Section1">${content}</div>
   <div style="mso-element:header" id="h1">${headerBand(logoDataUri())}</div>
   <div style="mso-element:footer" id="f1">${footerBand}</div>
-  <div class="Section1">${content}</div>
 </body></html>`
     const fileName = 'HopDong_' + (c.client_code || c.tax_code || 'KH') + '.doc'
     return new Response(wordHtml, {
@@ -287,18 +292,20 @@ export async function GET(request) {
   let html = `<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8">
 <title>Hợp đồng dịch vụ - ${esc(c.name)}</title>
 <style>${baseCss}
-  @page{size:A4;margin:19mm 15mm 17mm 15mm}
+  /* Lề chuẩn hợp đồng: trên 2cm, dưới 2cm, trái 3cm, phải 1.5cm */
+  @page{size:A4;margin:2cm 1.5cm 2cm 3cm}
   .pf-header,.pf-footer{position:fixed;left:0;right:0;background:#fff;z-index:3}
   .pf-header{top:0}
   .pf-footer{bottom:0}
-  .bandwrap{max-width:210mm;margin:0 auto;padding:0 15mm}
+  /* line header/footer trùng mép lề trái 3cm / phải 1.5cm */
+  .bandwrap{max-width:210mm;margin:0 auto;padding:0 1.5cm 0 3cm}
   .watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:300px;opacity:.045;z-index:0;pointer-events:none}
   .sheet{position:relative;z-index:1}
   .noprint{position:fixed;top:10px;right:14px;z-index:9}
   .btn{cursor:pointer;border:none;padding:8px 18px;border-radius:6px;font-size:12pt;font-weight:bold;background:#8B1A1A;color:#fff}
   @media screen{
     body{background:#e9e9ee}
-    .sheet{max-width:210mm;margin:0 auto;background:#fff;padding:26mm 15mm 24mm;min-height:100vh;box-shadow:0 0 10px rgba(0,0,0,.15)}
+    .sheet{max-width:210mm;margin:0 auto;background:#fff;padding:2cm 1.5cm 2cm 3cm;min-height:100vh;box-shadow:0 0 10px rgba(0,0,0,.15)}
     .pf-header{box-shadow:0 2px 5px rgba(0,0,0,.06)}
     .pf-footer{box-shadow:0 -2px 5px rgba(0,0,0,.06)}
   }
