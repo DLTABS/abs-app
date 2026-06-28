@@ -273,26 +273,33 @@ export async function GET(request) {
     })
   }
 
-  // PDF: header/footer position:fixed ghim cứng top/bottom mỗi trang; @page chừa lề.
+  // PDF: header/footer position:fixed ghim cứng top/bottom mỗi trang khi IN; @page chừa lề.
+  // Trên màn hình (xem trực tiếp) dùng @media screen để chừa khoảng cho 2 dải này, tránh đè nội dung.
   html = `<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8">
 <title>Hợp đồng dịch vụ - ${esc(c.name)}</title>
 <style>${baseCss}
-  @page{size:A4;margin:30mm 16mm 26mm 16mm}
-  .pf-header{position:fixed;top:0;left:16mm;right:16mm;height:26mm;display:flex;align-items:flex-end;padding-bottom:0}
-  .pf-header .hdr-band{width:100%}
-  .pf-footer{position:fixed;bottom:0;left:16mm;right:16mm;height:22mm;display:flex;align-items:flex-start}
-  .pf-footer .ftr-band{width:100%}
+  @page{size:A4;margin:28mm 16mm 24mm 16mm}
+  .pf-header,.pf-footer{position:fixed;left:0;right:0;background:#fff;z-index:3}
+  .pf-header{top:0}
+  .pf-footer{bottom:0}
+  .bandwrap{max-width:210mm;margin:0 auto;padding:0 16mm}
   .watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:300px;opacity:.045;z-index:0;pointer-events:none}
-  .content{position:relative;z-index:1}
-  .noprint{position:fixed;top:8px;right:12px;z-index:5}
+  .sheet{position:relative;z-index:1}
+  .noprint{position:fixed;top:10px;right:14px;z-index:9}
   .btn{cursor:pointer;border:none;padding:8px 18px;border-radius:6px;font-size:12pt;font-weight:bold;background:#8B1A1A;color:#fff}
+  @media screen{
+    body{background:#e9e9ee}
+    .sheet{max-width:210mm;margin:0 auto;background:#fff;padding:32mm 16mm 30mm;min-height:100vh;box-shadow:0 0 10px rgba(0,0,0,.15)}
+    .pf-header{box-shadow:0 2px 5px rgba(0,0,0,.06)}
+    .pf-footer{box-shadow:0 -2px 5px rgba(0,0,0,.06)}
+  }
   @media print{.noprint{display:none!important} body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style></head><body>
   <div class="noprint"><button class="btn" onclick="window.print()">🖨️ In / Lưu PDF</button></div>
   <img class="watermark" src="${logoUrl}" alt="" onerror="this.style.display='none'"/>
-  <div class="pf-header">${headerBand}</div>
-  <div class="pf-footer">${footerBand}</div>
-  <div class="content">${content}</div>
+  <div class="pf-header"><div class="bandwrap">${headerBand}</div></div>
+  <div class="pf-footer"><div class="bandwrap">${footerBand}</div></div>
+  <div class="sheet">${content}</div>
 </body></html>`
   return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
 }
