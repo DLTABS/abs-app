@@ -11,17 +11,6 @@ function getAdmin() {
 const fmt = (n) => Number(n || 0).toLocaleString('vi-VN')
 const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-// Nhúng logo base64 (cho bản Word — Word thường không tải ảnh online)
-function logoDataUri() {
-  for (const f of ['logo-savitax-hddv.png', 'logo-savitax.png']) {
-    try {
-      const buf = readFileSync(join(process.cwd(), 'public', f))
-      return 'data:image/png;base64,' + buf.toString('base64')
-    } catch (_) {}
-  }
-  return ''
-}
-
 // GET /api/admin/contract?clientId=xxx&format=pdf|word
 export async function GET(request) {
   const { searchParams } = new URL(request.url)
@@ -261,28 +250,31 @@ export async function GET(request) {
     .sign .nm{font-weight:bold;font-size:11.5pt;text-transform:uppercase}`
 
   if (isWord) {
-    // WORD: dùng cơ chế header/footer của Word (mso-element) để lặp mỗi trang;
-    // logo nhúng base64; nội dung full khổ giấy nhờ lề @page Section1.
-    const wordHtml = `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" lang="vi"><head><meta charset="UTF-8">
-<title>Hợp đồng dịch vụ - ${esc(c.name)}</title>
-<style>${baseCss}
-  /* Lề chuẩn hợp đồng: trên 2cm, dưới 2cm, trái 3cm, phải 1.5cm */
-  @page Section1{size:21.0cm 29.7cm;margin:2.0cm 1.5cm 2.0cm 3.0cm;mso-header-margin:1.0cm;mso-footer-margin:0.8cm;mso-header:h1;mso-footer:f1}
-  div.Section1{page:Section1}
-  p.MsoHeader,p.MsoFooter{margin:0}
-  /* Word KHÔNG hỗ trợ li:before → dùng bullet thật để không mất gạch đầu dòng */
-  ul{list-style:disc;margin:4px 0 6px 24px}
-  li{padding-left:0;position:static}
-  li:before{content:none}
-</style></head><body>
-  <div class="Section1">${content}</div>
-  <div style="mso-element:header" id="h1">${headerBand(logoDataUri())}</div>
-  <div style="mso-element:footer" id="f1">${footerBand}</div>
-</body></html>`
-    const fileName = 'HopDong_' + (c.client_code || c.tax_code || 'KH') + '.doc'
-    return new Response(wordHtml, {
+    // WORD: điền dữ liệu vào file .docx mẫu thật (templates/hop-dong-dich-vu.docx —
+    // có header/footer/logo native của Word, đã được kiểm duyệt đúng nội dung/trình bày)
+    // bằng docxtemplater, thay cho cách dựng HTML giả-Word trước đây (hay sai layout).
+    const PizZip = (await import('pizzip')).default
+    const Docxtemplater = (await import('docxtemplater')).default
+    const templateBuf = readFileSync(join(process.cwd(), 'templates', 'hop-dong-dich-vu.docx'))
+    const zip = new PizZip(templateBuf)
+    const doc = new Docxtemplater(zip, { paragraphLoop: true, linebreaks: true })
+    doc.render({
+      so_hd: soHD,
+      ngay_lap: ngayLap,
+      ten_cong_ty: c.name,
+      dia_chi: c.address || '',
+      mst: c.tax_code,
+      nguoi_dai_dien: c.representative || '',
+      tu_ngay: tuNgay,
+      den_ngay: denNgay,
+      phi_dich_vu: fmt(fee),
+      phi_bang_chu: feeWords,
+    })
+    const outBuf = doc.getZip().generate({ type: 'nodebuffer' })
+    const fileName = 'HopDong_' + (c.client_code || c.tax_code || 'KH') + '.docx'
+    return new Response(outBuf, {
       headers: {
-        'Content-Type': 'application/msword; charset=utf-8',
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'Content-Disposition': "attachment; filename*=UTF-8''" + encodeURIComponent(fileName),
       },
     })
