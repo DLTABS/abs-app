@@ -13,7 +13,7 @@ const esc = (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</
 export async function GET(request) {
   const { searchParams } = new URL(request.url)
   const clientId = searchParams.get('clientId')
-  const format   = searchParams.get('format') === 'word' ? 'word' : 'pdf'
+  const isWord   = searchParams.get('format') === 'word'
   if (!clientId) return new Response('Missing clientId', { status: 400 })
 
   const supabase = getAdmin()
@@ -23,8 +23,8 @@ export async function GET(request) {
   if (!c) return new Response('Client not found', { status: 404 })
 
   const origin   = new URL(request.url).origin
-  const logoUrl  = origin + '/logo-savitax.png'       // logo cũ (watermark + fallback)
-  const hdLogo   = origin + '/logo-savitax-hddv.png'  // logo HD cho header
+  const logoUrl  = origin + '/logo-savitax.png'
+  const hdLogo   = origin + '/logo-savitax-hddv.png'
   const startRaw = c.contract_start || new Date()
   const soHD     = contractNumber(startRaw, c.client_code || c.tax_code || '')
   const ngayLap  = viFullDate(startRaw)
@@ -52,82 +52,29 @@ export async function GET(request) {
     '<tr class="' + (i % 2 ? 'odd' : '') + '"><td class="c">' + r[0] + '</td><td>' + r[1] + '</td><td class="r">' + r[2] + '</td><td class="r">' + r[3] + '</td><td class="r">' + r[4] + '</td></tr>'
   ).join('')
 
-  const printBtn = format === 'word' ? '' :
-    '<div class="noprint" style="text-align:right;margin-bottom:10px"><button class="btn" onclick="window.print()">🖨️ In / Lưu PDF</button></div>'
+  const signBlock = `<table class="sign">
+    <tr><td class="role">ĐẠI DIỆN BÊN A</td><td class="role">ĐẠI DIỆN BÊN B</td></tr>
+    <tr><td class="note">(Ký, ghi rõ họ tên)</td><td class="note">(Ký, ghi rõ họ tên)</td></tr>
+    <tr><td class="gap"></td><td class="gap"></td></tr>
+    <tr><td class="nm">${esc(c.representative)}</td><td class="nm">ĐINH THỊ HUYỀN</td></tr>
+  </table>`
 
-  const html = `<!DOCTYPE html>
-<html lang="vi"><head><meta charset="UTF-8">
-<title>Hợp đồng dịch vụ - ${esc(c.name)}</title>
-<style>
-  @page{size:A4;margin:0}
-  *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:'Times New Roman',serif;font-size:13pt;color:#1a1a1a;line-height:1.5;background:#fff}
-  .wrap{width:210mm;margin:0 auto}
-  /* Watermark logo chìm */
-  .watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:340px;opacity:.05;z-index:0;pointer-events:none}
-  .layout{position:relative;z-index:1;width:100%;border-collapse:collapse}
-  .hdr td,.ftr td{border:none;padding:0}
-  /* Header lặp mỗi trang — trái: logo, phải: tên + địa chỉ (canh giữa).
-     margin ngang 16mm để đường line không chạm mép giấy; padding-top tạo lề trên mỗi trang */
-  .hdr-band{display:flex;align-items:center;gap:14px;border-bottom:2px solid #C9A84C;margin:0 16mm;padding:10mm 0 6px}
-  .hdr-band .logo-box{width:104px;height:56px;overflow:hidden;flex-shrink:0;display:flex;align-items:center}
-  .hdr-band .logo{width:104px;display:block}
-  .hdr-band .info{flex:1;text-align:center}
-  .hdr-name{font-weight:bold;color:#8B1A1A;font-size:13.5pt;line-height:1.25}
-  .hdr-addr{font-size:10pt;color:#444}
-  /* Footer lặp mỗi trang — 3 dòng canh giữa. padding-bottom tạo lề dưới mỗi trang */
-  .ftr-band{border-top:2px solid #C9A84C;margin:0 16mm;padding:6px 0 10mm;text-align:center;line-height:1.45}
-  .ftr-band .name{color:#8B1A1A;font-weight:bold;font-size:10.5pt}
-  .ftr-band .ln{font-size:9.5pt;color:#555}
-  td.body{border:none;padding:6px 16mm 0}
-  h1{text-align:center;font-size:16pt;font-weight:bold;margin:6px 0 4px;color:#8B1A1A;letter-spacing:.5px}
-  .sohd{text-align:center;font-size:12pt;margin-bottom:12px;color:#8B1A1A;font-weight:bold}
-  p{margin:5px 0;text-align:justify}
-  .b{font-weight:bold}.red{color:#c0392b}
-  h2{font-size:13pt;font-weight:bold;margin:13px 0 4px;color:#8B1A1A;border-left:3px solid #C9A84C;padding-left:8px}
-  ul{margin:4px 0 6px 6px;list-style:none}
-  li{margin:3px 0;text-align:justify;padding-left:18px;position:relative}
-  li:before{content:"–";position:absolute;left:2px;color:#C9A84C;font-weight:bold}
-  li.cancu{font-style:italic;color:#333}
-  .feeline{background:#FFF8E1;border:1px solid #F0D98C;border-radius:4px;padding:4px 8px}
-  table.fee{width:100%;border-collapse:collapse;margin:8px 0;font-size:10.5pt}
-  table.fee th,table.fee td{border:1px solid #b8923a;padding:5px 6px;vertical-align:top}
-  table.fee th{background:#8B1A1A;color:#fff;text-align:center;font-weight:bold;font-size:9.5pt}
-  table.fee td.c{text-align:center}table.fee td.r{text-align:right}
-  table.fee tr.odd td{background:#FCF6E6}
-  .plx{text-align:center;font-size:14pt;font-weight:bold;color:#8B1A1A;margin:0 0 8px;padding-top:6px;page-break-before:always;break-before:page}
-  .sign{width:100%;border-collapse:collapse;margin-top:22px;page-break-inside:avoid;break-inside:avoid}
-  .sign td{border:none;width:50%;text-align:center;vertical-align:top;padding:0 6px}
-  .sign .role{font-weight:bold;font-size:12pt;color:#8B1A1A}
-  .sign .note{font-size:9pt;font-style:italic;color:#666;padding-top:2px}
-  .sign .gap{height:60px}
-  .sign .nm{font-weight:bold;font-size:11.5pt;text-transform:uppercase}
-  .btn{cursor:pointer;border:none;padding:8px 18px;border-radius:6px;font-size:12pt;font-weight:bold;background:#8B1A1A;color:#fff}
-  @media print{.noprint{display:none!important} body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
-</style></head>
-<body>
-  ${format === 'word' ? '' : `<img class="watermark" src="${logoUrl}" alt="" onerror="this.style.display='none'"/>`}
-  <div class="wrap">
-  ${printBtn}
-  <table class="layout">
-    <thead class="hdr"><tr><td>
-      <div class="hdr-band">
-        <div class="logo-box"><img class="logo" src="${hdLogo}" alt="SAVITAX" onerror="this.onerror=null;this.src='${logoUrl}'"/></div>
-        <div class="info">
-          <div class="hdr-name">CÔNG TY CỔ PHẦN TƯ VẤN THUẾ SAVITAX</div>
-          <div class="hdr-addr">16 Bình Lợi, Phường Bình Lợi Trung, Thành phố Hồ Chí Minh</div>
-        </div>
+  // Header band (logo trái + tên/địa chỉ canh giữa) & footer band (3 dòng canh giữa)
+  const headerBand = `<div class="hdr-band">
+      <img class="logo" src="${hdLogo}" alt="SAVITAX" onerror="this.onerror=null;this.src='${logoUrl}'"/>
+      <div class="info">
+        <div class="hdr-name">CÔNG TY CỔ PHẦN TƯ VẤN THUẾ SAVITAX</div>
+        <div class="hdr-addr">16 Bình Lợi, Phường Bình Lợi Trung, Thành phố Hồ Chí Minh</div>
       </div>
-    </td></tr></thead>
-    <tfoot class="ftr"><tr><td>
-      <div class="ftr-band">
-        <div class="name">CÔNG TY CỔ PHẦN TƯ VẤN THUẾ SAVITAX</div>
-        <div class="ln">Website: www.savitax.vn</div>
-        <div class="ln">Hotline: 0989 666 253 (Ms. Huyền) – 0916 084 266 (Ms. Trang)</div>
-      </div>
-    </td></tr></tfoot>
-    <tbody><tr><td class="body">
+    </div>`
+  const footerBand = `<div class="ftr-band">
+      <div class="name">CÔNG TY CỔ PHẦN TƯ VẤN THUẾ SAVITAX</div>
+      <div class="ln">Website: www.savitax.vn</div>
+      <div class="ln">Hotline: 0989 666 253 (Ms. Huyền) – 0916 084 266 (Ms. Trang)</div>
+    </div>`
 
+  // Phần nội dung chính (dùng chung cho cả PDF & Word)
+  const content = `
       <h1>HỢP ĐỒNG DỊCH VỤ</h1>
       <p class="sohd">Số: ${esc(soHD)}</p>
       <ul>
@@ -142,7 +89,7 @@ export async function GET(request) {
       <p class="b" style="text-transform:uppercase">${esc(c.name)}</p>
       <p>Địa chỉ: ${esc(c.address)}</p>
       <p>Mã số thuế: ${esc(c.tax_code)}</p>
-      <p>Đại diện là Ông/Bà: <span class="b">${esc(c.representative)}</span> &nbsp;&nbsp;&nbsp; Chức vụ: Giám đốc</p>
+      <table class="rep"><tr><td>Đại diện là Ông/Bà: <span class="b">${esc(c.representative)}</span></td><td class="cv">Chức vụ: Giám đốc</td></tr></table>
       <p>Điện thoại: ............................................</p>
 
       <p class="b">Bên B: (Bên cung cấp dịch vụ):</p>
@@ -151,7 +98,7 @@ export async function GET(request) {
       <p>Mã số thuế: 0313 906 307</p>
       <p>Tài khoản Ngân hàng: Ngân Hàng Thương Mại Á Châu – CN Nguyễn Trãi</p>
       <p>Số tài khoản: 3878556868</p>
-      <p>Đại diện là Bà: <span class="b">Đinh Thị Huyền</span> &nbsp;&nbsp;&nbsp; Chức vụ: Giám đốc</p>
+      <table class="rep"><tr><td>Đại diện là Bà: <span class="b">Đinh Thị Huyền</span></td><td class="cv">Chức vụ: Giám đốc</td></tr></table>
       <p>Điện thoại: 0989.666.253</p>
 
       <p>Bên A và bên B có thể được gọi là "các Bên". Sau khi thoả thuận các Bên nhất trí ký Hợp đồng này gồm các điều khoản sau:</p>
@@ -234,21 +181,7 @@ export async function GET(request) {
       <p>9.3. Nếu không có giải pháp sau khi thương lượng, các tranh chấp phát sinh liên quan đến Hợp đồng này sẽ giải quyết tại Trung tâm trọng tài Việt Nam tại Tp.HCM theo quy tắc tố tụng trọng tài Trung tâm này. Phán quyết của trọng tài là chung thẩm và có hiệu lực thi hành đối với tất cả các Bên. Bên thua kiện sẽ phải trả chi phí cho trọng tài.</p>
       <p>9.4. Hợp đồng này được lập thành 02 bản tiếng Việt có giá trị pháp lý như nhau, mỗi bên giữ 01 bản.</p>
 
-      <table class="sign">
-        <tr>
-          <td class="role">ĐẠI DIỆN BÊN A</td>
-          <td class="role">ĐẠI DIỆN BÊN B</td>
-        </tr>
-        <tr>
-          <td class="note">(Ký, ghi rõ họ tên)</td>
-          <td class="note">(Ký, ghi rõ họ tên)</td>
-        </tr>
-        <tr><td class="gap"></td><td class="gap"></td></tr>
-        <tr>
-          <td class="nm">${esc(c.representative)}</td>
-          <td class="nm">ĐINH THỊ HUYỀN</td>
-        </tr>
-      </table>
+      ${signBlock}
 
       <p class="plx">PHỤ LỤC SỐ 01</p>
       <p>Biểu phí dịch vụ thực hiện các thủ tục thuế, tư vấn thuế và thủ tục về hành chính nhân sự cụ thể như sau:</p>
@@ -272,19 +205,65 @@ export async function GET(request) {
         <li>Giá trên chưa bao gồm thuế giá trị gia tăng và các loại thuế DN phải nộp cho cơ quan thuế.</li>
       </ul>
 
-      <table class="sign">
-        <tr><td class="role">ĐẠI DIỆN BÊN A</td><td class="role">ĐẠI DIỆN BÊN B</td></tr>
-        <tr><td class="note">(Ký, ghi rõ họ tên)</td><td class="note">(Ký, ghi rõ họ tên)</td></tr>
-        <tr><td class="gap"></td><td class="gap"></td></tr>
-        <tr><td class="nm">${esc(c.representative)}</td><td class="nm">ĐINH THỊ HUYỀN</td></tr>
-      </table>
+      ${signBlock}`
 
-    </td></tr></tbody>
-  </table>
-  </div>
+  // CSS dùng chung cho thân hợp đồng
+  const baseCss = `
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Times New Roman',serif;font-size:13pt;color:#1a1a1a;line-height:1.5;background:#fff}
+    .hdr-band{display:flex;align-items:center;gap:14px;border-bottom:2px solid #C9A84C;padding-bottom:6px}
+    .hdr-band .logo{height:54px;width:auto;flex-shrink:0;object-fit:contain}
+    .hdr-band .info{flex:1;text-align:center}
+    .hdr-name{font-weight:bold;color:#8B1A1A;font-size:13.5pt;line-height:1.25}
+    .hdr-addr{font-size:10pt;color:#444}
+    .ftr-band{border-top:2px solid #C9A84C;padding-top:5px;text-align:center;line-height:1.4}
+    .ftr-band .name{color:#8B1A1A;font-weight:bold;font-size:10.5pt}
+    .ftr-band .ln{font-size:9.5pt;color:#555}
+    h1{text-align:center;font-size:16pt;font-weight:bold;margin:6px 0 4px;color:#8B1A1A;letter-spacing:.5px}
+    .sohd{text-align:center;font-size:12pt;margin-bottom:12px;color:#8B1A1A;font-weight:bold}
+    p{margin:5px 0;text-align:justify}
+    .b{font-weight:bold}.red{color:#c0392b}
+    h2{font-size:13pt;font-weight:bold;margin:13px 0 4px;color:#8B1A1A;border-left:3px solid #C9A84C;padding-left:8px}
+    ul{margin:4px 0 6px 6px;list-style:none}
+    li{margin:3px 0;text-align:justify;padding-left:18px;position:relative}
+    li:before{content:"–";position:absolute;left:2px;color:#C9A84C;font-weight:bold}
+    li.cancu{font-style:italic;color:#333}
+    .rep{width:100%;border-collapse:collapse;margin:5px 0}
+    .rep td{border:none;padding:0;vertical-align:top}
+    .rep td.cv{width:34%}
+    .feeline{background:#FFF8E1;border:1px solid #F0D98C;border-radius:4px;padding:4px 8px}
+    table.fee{width:100%;border-collapse:collapse;margin:8px 0;font-size:10.5pt}
+    table.fee th,table.fee td{border:1px solid #b8923a;padding:5px 6px;vertical-align:top}
+    table.fee th{background:#8B1A1A;color:#fff;text-align:center;font-weight:bold;font-size:9.5pt}
+    table.fee td.c{text-align:center}table.fee td.r{text-align:right}
+    table.fee tr.odd td{background:#FCF6E6}
+    .plx{text-align:center;font-size:14pt;font-weight:bold;color:#8B1A1A;margin:0 0 8px;padding-top:6px;page-break-before:always;break-before:page}
+    .sign{width:100%;border-collapse:collapse;margin-top:22px;page-break-inside:avoid;break-inside:avoid}
+    .sign td{border:none;width:50%;text-align:center;vertical-align:top;padding:0 6px}
+    .sign .role{font-weight:bold;font-size:12pt;color:#8B1A1A}
+    .sign .note{font-size:9pt;font-style:italic;color:#666;padding-top:2px}
+    .sign .gap{height:60px}
+    .sign .nm{font-weight:bold;font-size:11.5pt;text-transform:uppercase}`
+
+  let html
+  if (isWord) {
+    // WORD: header/footer trong thead/tfoot để lặp mỗi trang khi mở trong Word
+    html = `<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8">
+<title>Hợp đồng dịch vụ - ${esc(c.name)}</title>
+<style>${baseCss}
+  .wrap{width:210mm;margin:0 auto}
+  .layout{width:100%;border-collapse:collapse}
+  .hdr td,.ftr td{border:none;padding:0}
+  .hdr-band{margin:0 16mm;padding-top:8mm}
+  .ftr-band{margin:0 16mm;padding-bottom:8mm}
+  td.body{border:none;padding:6px 16mm 0}
+</style></head><body>
+  <div class="wrap"><table class="layout">
+    <thead class="hdr"><tr><td>${headerBand}</td></tr></thead>
+    <tfoot class="ftr"><tr><td>${footerBand}</td></tr></tfoot>
+    <tbody><tr><td class="body">${content}</td></tr></tbody>
+  </table></div>
 </body></html>`
-
-  if (format === 'word') {
     const fileName = 'HopDong_' + (c.client_code || c.tax_code || 'KH') + '.doc'
     return new Response(html, {
       headers: {
@@ -293,5 +272,27 @@ export async function GET(request) {
       },
     })
   }
+
+  // PDF: header/footer position:fixed ghim cứng top/bottom mỗi trang; @page chừa lề.
+  html = `<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8">
+<title>Hợp đồng dịch vụ - ${esc(c.name)}</title>
+<style>${baseCss}
+  @page{size:A4;margin:30mm 16mm 26mm 16mm}
+  .pf-header{position:fixed;top:0;left:16mm;right:16mm;height:26mm;display:flex;align-items:flex-end;padding-bottom:0}
+  .pf-header .hdr-band{width:100%}
+  .pf-footer{position:fixed;bottom:0;left:16mm;right:16mm;height:22mm;display:flex;align-items:flex-start}
+  .pf-footer .ftr-band{width:100%}
+  .watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:300px;opacity:.045;z-index:0;pointer-events:none}
+  .content{position:relative;z-index:1}
+  .noprint{position:fixed;top:8px;right:12px;z-index:5}
+  .btn{cursor:pointer;border:none;padding:8px 18px;border-radius:6px;font-size:12pt;font-weight:bold;background:#8B1A1A;color:#fff}
+  @media print{.noprint{display:none!important} body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+</style></head><body>
+  <div class="noprint"><button class="btn" onclick="window.print()">🖨️ In / Lưu PDF</button></div>
+  <img class="watermark" src="${logoUrl}" alt="" onerror="this.style.display='none'"/>
+  <div class="pf-header">${headerBand}</div>
+  <div class="pf-footer">${footerBand}</div>
+  <div class="content">${content}</div>
+</body></html>`
   return new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } })
 }
