@@ -43,12 +43,10 @@ export async function GET(request) {
     ['5', 'Trên 31 chứng từ', 'Thoả thuận', '', ''],
   ]
   const feeTable2 = [
-    ['1', 'Dưới 10 LĐ BHXH / Dưới 100 LĐ thời vụ', '1.500.000', '1.500.000', '2.000.000'],
-    ['2', 'Từ 10 đến dưới 20 LĐ BHXH / 100–200 LĐ thời vụ', '3.000.000', '3.000.000', '3.500.000'],
-    ['3', 'Từ 20 đến dưới 30 LĐ BHXH / 200–300 LĐ thời vụ', '4.500.000', '4.500.000', '5.000.000'],
-    ['4', 'Từ 30 đến dưới 40 LĐ BHXH / 300–400 LĐ thời vụ', '6.000.000', '6.000.000', '8.000.000'],
-    ['5', 'Từ 40 đến dưới 50 LĐ BHXH / 400–500 LĐ thời vụ', '8.000.000', '8.000.000', '10.000.000'],
-    ['6', 'Trên 51 LĐ BHXH / Trên 500 LĐ thời vụ', 'Thỏa thuận', '', ''],
+    ['1', 'Dưới 10 LĐ BHXH / Dưới 100 LĐ thời vụ', '3.000.000', '7.500.000', '10.000.000'],
+    ['2', 'Từ 10 đến dưới 20 LĐ BHXH / 100–200 LĐ thời vụ', '6.000.000', '10.000.000', '12.500.000'],
+    ['3', 'Từ 20 đến dưới 30 LĐ BHXH / 200–300 LĐ thời vụ', '9.000.000', '12.500.000', '14.000.000'],
+    ['4', 'Trên 30 LĐ BHXH / Trên 300 LĐ thời vụ', 'Thỏa thuận', '', ''],
   ]
   const rows = (arr) => arr.map((r, i) =>
     '<tr class="' + (i % 2 ? 'odd' : '') + '"><td class="c">' + r[0] + '</td><td>' + r[1] + '</td><td class="r">' + r[2] + '</td><td class="r">' + r[3] + '</td><td class="r">' + r[4] + '</td></tr>'
@@ -199,12 +197,11 @@ export async function GET(request) {
         <thead><tr><th>Stt</th><th>Số lượng lao động phát sinh</th><th>LĐ tham gia BHXH</th><th>LĐ không tham gia BHXH</th><th>LĐ tham gia &amp; không tham gia BHXH</th></tr></thead>
         <tbody>${rows(feeTable2)}</tbody>
       </table>
-      <p>Đăng ký lao động, hồ sơ BHXH, BHYT, BHTN, Công đoàn lần đầu với số lượng dưới 10 người: 3.000.000đ (chưa bao gồm VAT) và 1.000.000đ/lần phát sinh tăng/giảm hàng tháng.</p>
+      <p>Đăng ký lao động, hồ sơ BHXH, BHYT, BHTN, Công đoàn lần đầu với số lượng dưới 5 người: 3.000.000đ (chưa bao gồm VAT) và 1.000.000đ/lần phát sinh tăng/giảm hàng tháng.</p>
       <p class="b">Lưu ý:</p>
       <ul>
-        <li>Các quận Thủ Đức, quận 2, quận 7, quận 9 phụ thu tiền xăng 200.000đ/tháng. Các Huyện Nhà Bè, Bình Chánh, Hóc Môn, Củ Chi phụ thu tiền xăng 500.000đ/tháng.</li>
-        <li>Biểu phí còn phụ thuộc vào tình hình đặc thù của từng doanh nghiệp.</li>
-        <li>Giá trên chưa bao gồm thuế giá trị gia tăng và các loại thuế DN phải nộp cho cơ quan thuế.</li>
+        <li>Phụ thu xăng xe với trường hợp di chuyển xa trên 7km.</li>
+        <li>Giá trên chưa bao gồm thuế VAT và các loại thuế DN phải nộp cho cơ quan thuế.</li>
       </ul>
 
       ${signBlock}`
