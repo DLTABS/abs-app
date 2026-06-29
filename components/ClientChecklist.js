@@ -331,11 +331,12 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
   const b1AmountNum = Number(b1Amount) || 0
   const subTotal   = b1AmountNum + extraTotal
   const prevBal    = Number(client.other_debt) || 0
-  // Nợ tồn (A) là số tiền trước thuế (rollover từ phí chưa thu) nên VAT phải tính trên cả A + kỳ này,
-  // không chỉ riêng B1 — tránh bỏ sót thuế của phần nợ tồn khi đưa vào ĐNTT.
-  const vatAmt     = Math.round((prevBal + subTotal) * 0.08)
+  // Nợ tồn (A) nhập vào là số TRƯỚC VAT — hiển thị trên ĐNTT đã gồm VAT riêng của A (A×1.08)
+  // để tách biệt rõ với phí kế toán kỳ này (B), khách hàng dễ hiểu từng phần.
+  const prevBalVat = Math.round(prevBal * 1.08)
+  const vatAmt     = Math.round(subTotal * 0.08)
   const totalB     = subTotal + vatAmt
-  const totalC     = prevBal + totalB
+  const totalC     = prevBalVat + totalB
   const monthPad   = String(clientMonth).padStart(2,'0')
   const clientCode = client.client_code || client.tax_code || ''
   const qrContent  = clientCode + '_ThanhToanPhiDichvu_T' + monthPad + '_Savitax'
@@ -594,8 +595,8 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
               <tbody>
                 <tr className="bg-amber-50">
                   <td className="border border-gray-200 px-2 py-1 text-center font-bold">A</td>
-                  <td className="border border-gray-200 px-2 py-1 font-semibold">Số tiền kỳ trước chuyển sang</td>
-                  <td className="border border-gray-200 px-2 py-1 text-right">{prevBal > 0 ? fmt(prevBal) : '–'}</td>
+                  <td className="border border-gray-200 px-2 py-1 font-semibold">Số tiền kỳ trước chuyển sang (đã gồm VAT 8%)</td>
+                  <td className="border border-gray-200 px-2 py-1 text-right">{prevBal > 0 ? fmt(prevBalVat) : '–'}</td>
                 </tr>
                 <tr className="bg-green-50">
                   <td className="border border-gray-200 px-2 py-1 text-center font-bold">B</td>

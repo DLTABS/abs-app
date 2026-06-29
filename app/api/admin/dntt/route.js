@@ -38,10 +38,12 @@ export async function GET(request) {
   const extraTotal = extraRows.reduce((s, r) => s + (Number(r.amount) || 0), 0)
   const subTotal   = baseFee + extraTotal        // tổng trước VAT (B1 + B2...B7)
   const prevBal    = Number(client.other_debt) || 0
-  // Nợ tồn (A) là số tiền trước thuế (rollover từ phí chưa thu) nên VAT phải tính trên cả A + kỳ này
-  const vatAmt     = Math.round((prevBal + subTotal) * 0.08)
+  // Nợ tồn (A) nhập vào là số TRƯỚC VAT — hiển thị đã gồm VAT riêng của A (A×1.08), tách biệt
+  // với phí kế toán kỳ này (B) để khách hàng dễ hiểu từng phần.
+  const prevBalVat = Math.round(prevBal * 1.08)
+  const vatAmt     = Math.round(subTotal * 0.08)
   const totalB     = subTotal + vatAmt
-  const totalC     = prevBal + totalB
+  const totalC     = prevBalVat + totalB
 
   // QR VietQR
   const monthPad  = String(month).padStart(2, '0')
@@ -149,8 +151,8 @@ export async function GET(request) {
     <tbody>
       <tr class="rowA">
         <td class="ca lbl">A</td>
-        <td class="lbl">Số tiền còn lại kỳ trước chuyển sang</td>
-        <td class="ra">${prevBal > 0 ? fmt(prevBal) + ' đ' : '–'}</td>
+        <td class="lbl">Số tiền còn lại kỳ trước chuyển sang (đã gồm VAT 8%)</td>
+        <td class="ra">${prevBal > 0 ? fmt(prevBalVat) + ' đ' : '–'}</td>
         <td></td><td></td>
       </tr>
       <tr class="rowB">
@@ -247,7 +249,7 @@ var startIdx = ${extraRows.length + 2} // B rows already filled
 var allRows = [2,3,4,5,6,7].filter(function(n){ return n >= startIdx })
 var rows = allRows.map(function(n){ return 'xrow'+n })
 var baseFeeVal = ${baseFee}
-var prevBalVal = ${prevBal}
+var prevBalVal = ${prevBalVat}
 
 function addRow() {
   if (shown < rows.length) {
@@ -280,9 +282,9 @@ function recalc() {
       if (cells[1]) extra += parseAmt(cells[1].innerText)
     }
   }
-  // VAT = (A nợ tồn + B1 + B2...B7) * 8% — nợ tồn là số trước thuế nên phải tính VAT chung
+  // VAT chỉ tính trên B (B1 + B2...B7) — A (nợ tồn) đã hiển thị gồm VAT riêng (A×1.08) ở trên
   var subTotal = baseFeeVal + extra
-  var vatAmt   = Math.round((prevBalVal + subTotal) * 0.08)
+  var vatAmt   = Math.round(subTotal * 0.08)
   var totalB   = subTotal + vatAmt
   var totalC   = prevBalVal + totalB
   var f = function(n){ return n.toLocaleString('vi-VN') }
