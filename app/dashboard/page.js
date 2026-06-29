@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import AppShell from '@/components/AppShell'
+import NotificationBell from '@/components/NotificationBell'
 
 const pctColor = (v) => v >= 90 ? 'text-green-600' : v >= 70 ? 'text-yellow-600' : 'text-red-500'
 const barColor = (v) => v >= 90 ? 'bg-green-500' : v >= 70 ? 'bg-yellow-400' : 'bg-red-400'
@@ -117,9 +118,12 @@ export default function DashboardPage() {
       <div className="px-4 md:px-8 py-5">
 
         {/* Header */}
-        <div className="mb-5">
-          <h1 className="text-xl font-bold text-gray-900">Tổng quan</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Tháng {month}/{year}</p>
+        <div className="mb-5 flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">Tổng quan</h1>
+            <p className="text-sm text-gray-500 mt-0.5">Tháng {month}/{year}</p>
+          </div>
+          <NotificationBell />
         </div>
 
         {/* Hàng trên: 1 & 2 */}
