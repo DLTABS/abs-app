@@ -56,8 +56,8 @@ export default function AppShell({ children }) {
           <NotificationBell />
         </div>
 
-        {/* Desktop: chuông thông báo góc phải, nổi trên mọi trang */}
-        <div className="hidden md:block fixed top-3 right-4 z-40">
+        {/* Desktop: chuông thông báo góc phải, nổi trên mọi trang (z cao nhất để không bị che) */}
+        <div className="hidden md:block fixed top-3 right-4 z-[60]">
           <NotificationBell />
         </div>
 
