@@ -121,7 +121,7 @@ export async function POST(request) {
 
 export async function PATCH(request) {
   const body = await request.json()
-  const { id, assigned_to, address, tax_status, fee_period, status, monthly_fee, fee_history, other_debt, client_code, name, tax_code, representative, contract_start, updatedBy } = body
+  const { id, assigned_to, address, tax_status, fee_period, status, monthly_fee, fee_history, other_debt, client_code, name, tax_code, representative, contract_start, report_type, updatedBy } = body
   if (!id) return Response.json({ error: 'Missing id' }, { status: 400 })
   const supabase = getAdmin()
 
@@ -145,6 +145,7 @@ export async function PATCH(request) {
   if (representative !== undefined) updateData.representative = representative
   if (name         !== undefined) updateData.name         = name
   if (tax_code     !== undefined) updateData.tax_code     = tax_code
+  if (report_type  !== undefined) updateData.report_type  = report_type
 
   const { error } = await supabase.from('clients').update(updateData).eq('id', id)
   if (error) return Response.json({ error: error.message }, { status: 400 })
