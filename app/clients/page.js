@@ -749,8 +749,8 @@ export default function ClientsPage() {
         <div className="flex gap-1 mb-3 bg-gray-100 p-1 rounded-xl overflow-x-auto">
           {[
             ['pending',     'Trình ký (' + counts.pending + ')'],
-            ['active',      'Đang dùng (' + counts.active + ')'],
-            ['inactive',    'Ngưng (' + counts.inactive + ')'],
+            ['active',      'Đang sử dụng (' + counts.active + ')'],
+            ['inactive',    'Ngưng dịch vụ (' + counts.inactive + ')'],
             ['transferred', 'Chuyển đi (' + counts.transferred + ')'],
             ['all',         'Tất cả (' + counts.all + ')'],
           ].map(function(item) {
