@@ -192,7 +192,9 @@ export async function GET(request) {
         if (t.status === 'done_ontime') kpiDone++
       }
     }
-    const taskPct = kpiTotal === 0 ? 100 : Math.round(kpiDone / kpiTotal * 100)
+    // Nhân viên không phụ trách công ty nào (kể cả phụ) thì % công việc = 0%, không phải 100% —
+    // 100% chỉ dành cho trường hợp có công ty nhưng tháng này chưa phát sinh việc nào.
+    const taskPct = clientsWithTasks.length === 0 ? 0 : (kpiTotal === 0 ? 100 : Math.round(kpiDone / kpiTotal * 100))
     const debtPct = totalFee  === 0 ? (myOwnedClients.length > 0 ? 100 : 0) : Math.round(collectedFee / totalFee * 100)
 
     return { ...s, clientCount: myOwnedClients.length, clients: clientsWithTasks, taskPct, debtPct, totalTasks, doneTasks, totalFee, collectedFee }

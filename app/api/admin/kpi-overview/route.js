@@ -98,7 +98,8 @@ export async function GET(request) {
       full_name:    s.full_name,
       room_id:      s.room_id,
       client_count: myClients.length,
-      task_pct:     myClients.length ? mean(taskPcts) : 100,
+      // Nhân viên không phụ trách công ty nào thì % công việc = 0%, không phải 100%.
+      task_pct:     myClients.length ? mean(taskPcts) : 0,
       debt_pct:     myClients.length ? (debtCountedClients.length ? mean(debtPcts) : 100) : 0,
     }
   })

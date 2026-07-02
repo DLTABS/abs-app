@@ -166,7 +166,8 @@ export async function GET(request) {
     staff:   staffRecord,
     room,
     clients: clientsWithTasks,
-    taskPct: isMonthOnly ? (totalTasks === 0 ? 100 : Math.round(doneTasks / totalTasks * 100)) : null,
+    // Không phụ trách công ty nào thì % công việc = 0%, không phải 100%.
+    taskPct: isMonthOnly ? (clientsWithTasks.length === 0 ? 0 : (totalTasks === 0 ? 100 : Math.round(doneTasks / totalTasks * 100))) : null,
     debtPct: totalFee   === 0 ? (ownedClients.length > 0 ? 100 : 0) : Math.round(totalCol  / totalFee  * 100),
     totalTasks, doneTasks, totalFee, totalCol,
   })
