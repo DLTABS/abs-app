@@ -346,6 +346,9 @@ export default function Sidebar({ onClose }) {
               <NavItem href="/admin/roles"     icon={<IconUsers />}      label="Vai trò & phân quyền"  pathname={pathname} onClose={onClose} />
             )}
             {canManageDatabase && (
+              <NavItem href="/admin/backups"   icon={<IconDB />}         label="Backup dữ liệu"        pathname={pathname} onClose={onClose} />
+            )}
+            {canManageDatabase && (
               <NavItem href="/admin/migrate"   icon={<IconDB />}         label="Cài đặt Database"      pathname={pathname} onClose={onClose} />
             )}
           </div>
