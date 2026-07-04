@@ -11,66 +11,6 @@ import { loadPermissionData, can, clearPermissionCache } from '@/lib/permissions
 ──────────────────────────────────────────────────────────────── */
 
 /* ─── Icons ─────────────────────────────────────────────────── */
-const IconHome = () => (
-  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
-  </svg>
-)
-const IconBuilding = () => (
-  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
-  </svg>
-)
-const IconCoin = () => (
-  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-)
-const IconChart = () => (
-  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-  </svg>
-)
-const IconUsers = () => (
-  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
-  </svg>
-)
-const IconBriefcase = () => (
-  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 14.15v4.25c0 1.094-.787 2.036-1.872 2.18-2.087.277-4.216.42-6.378.42s-4.291-.143-6.378-.42c-1.085-.144-1.872-1.086-1.872-2.18v-4.25m16.5 0a2.18 2.18 0 00.75-1.661V8.706c0-1.081-.768-2.015-1.837-2.175a48.114 48.114 0 00-3.413-.387m4.5 8.006c-.194.165-.42.295-.673.38A23.978 23.978 0 0112 15.75c-2.648 0-5.195-.429-7.577-1.22a2.016 2.016 0 01-.673-.38m0 0A2.18 2.18 0 013 12.489V8.706c0-1.081.768-2.015 1.837-2.175a48.111 48.111 0 013.413-.387m7.5 0V5.25A2.25 2.25 0 0013.5 3h-3a2.25 2.25 0 00-2.25 2.25v.894m7.5 0a48.667 48.667 0 00-7.5 0M12 12.75h.008v.008H12v-.008z" />
-  </svg>
-)
-const IconClipboard = () => (
-  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-  </svg>
-)
-const IconStore = () => (
-  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 2.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z" />
-  </svg>
-)
-const IconPeople = () => (
-  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-  </svg>
-)
-const IconJournal = () => (
-  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-  </svg>
-)
-const IconDB = () => (
-  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />
-  </svg>
-)
-const IconLogout = () => (
-  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-  </svg>
-)
 const IconChevron = ({ open }) => (
   <svg className={'w-4 h-4 transition-transform duration-200 ' + (open ? 'rotate-180' : '')}
     fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -99,7 +39,7 @@ function NavItem({ href, icon, label, pathname, onClose }) {
         (active
           ? 'bg-[#8B1A1A] text-white shadow-sm'
           : 'text-gray-600 hover:bg-red-50 hover:text-[#8B1A1A]')}>
-      <span className={active ? 'text-white' : 'text-gray-400 group-hover:text-[#8B1A1A]'}>{icon}</span>
+      <span className="text-lg">{icon}</span>
       {label}
     </Link>
   )
@@ -255,21 +195,21 @@ export default function Sidebar({ onClose }) {
       {/* ── Nav ── */}
       <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
 
-        <NavItem href="/dashboard"  icon={<IconHome />}      label="Trang chủ"           pathname={pathname} onClose={onClose} />
-        <NavItem href="/clients"    icon={<IconStore />}     label="Danh sách công ty"   pathname={pathname} onClose={onClose} />
-        <NavItem href="/checklist"  icon={<IconClipboard />} label="Checklist công việc" pathname={pathname} onClose={onClose} />
-        <NavItem href="/my-debt"    icon={<IconCoin />}      label="Quản lý công nợ"     pathname={pathname} onClose={onClose} />
+        <NavItem href="/dashboard"  icon="🏠" label="Trang chủ"           pathname={pathname} onClose={onClose} />
+        <NavItem href="/clients"    icon="🏢" label="Danh sách công ty"   pathname={pathname} onClose={onClose} />
+        <NavItem href="/checklist"  icon="📋" label="Checklist công việc" pathname={pathname} onClose={onClose} />
+        <NavItem href="/my-debt"    icon="💰" label="Quản lý công nợ"     pathname={pathname} onClose={onClose} />
         {/* Nhật ký làm việc: để ở menu chính cho người KHÔNG có mục Quản trị (nhân viên/trưởng phòng);
             với tài khoản quản trị thì hiện trong mục Quản trị bên dưới cho đồng bộ */}
         {!showAdminSection && (
-          <NavItem href="/work-log" icon={<IconJournal />}  label="Nhật ký làm việc"    pathname={pathname} onClose={onClose} />
+          <NavItem href="/work-log" icon="📔" label="Nhật ký làm việc"    pathname={pathname} onClose={onClose} />
         )}
 
         {canViewKpi && (
-          <NavItem href="/report" icon={<IconChart />} label="Báo cáo KPI" pathname={pathname} onClose={onClose} />
+          <NavItem href="/report" icon="📊" label="Báo cáo KPI" pathname={pathname} onClose={onClose} />
         )}
         {isManager && (
-          <NavItem href="/staff" icon={<IconPeople />} label="Nhân viên Savitax" pathname={pathname} onClose={onClose} />
+          <NavItem href="/staff" icon="👥" label="Nhân viên Savitax" pathname={pathname} onClose={onClose} />
         )}
 
         {/* Phòng nghiệp vụ */}
@@ -282,9 +222,7 @@ export default function Sidebar({ onClose }) {
                   (pathname === '/rooms' || onRoomPage
                     ? 'text-white'
                     : 'text-gray-600 hover:bg-red-50 hover:text-[#8B1A1A]')}>
-                <span className={pathname === '/rooms' || onRoomPage ? 'text-white' : 'text-gray-400'}>
-                  <IconBuilding />
-                </span>
+                <span className="text-lg">🏛️</span>
                 Phòng nghiệp vụ
               </Link>
               <button onClick={() => setRoomsOpen(v => !v)}
@@ -327,29 +265,29 @@ export default function Sidebar({ onClose }) {
               <div className="h-px flex-1" style={{ background: 'linear-gradient(to left, #C9A84C60, transparent)' }} />
             </div>
             {canManageRooms && (
-              <NavItem href="/admin/rooms"     icon={<IconBuilding />}   label="Quản lý phòng ban"     pathname={pathname} onClose={onClose} />
+              <NavItem href="/admin/rooms"     icon="🏛️" label="Quản lý phòng ban"     pathname={pathname} onClose={onClose} />
             )}
             {canManageStaff && (
-              <NavItem href="/admin/staff"     icon={<IconUsers />}      label="Quản lý nhân viên"     pathname={pathname} onClose={onClose} />
+              <NavItem href="/admin/staff"     icon="👤" label="Quản lý nhân viên"     pathname={pathname} onClose={onClose} />
             )}
             {canManageClients && (
-              <NavItem href="/admin/clients"   icon={<IconBriefcase />}  label="Quản lý khách hàng"   pathname={pathname} onClose={onClose} />
+              <NavItem href="/admin/clients"   icon="💼" label="Quản lý khách hàng"   pathname={pathname} onClose={onClose} />
             )}
             {canManageChecklist && (
-              <NavItem href="/admin/checklist" icon={<IconClipboard />}  label="Checklist mẫu"         pathname={pathname} onClose={onClose} />
+              <NavItem href="/admin/checklist" icon="📋" label="Checklist mẫu"         pathname={pathname} onClose={onClose} />
             )}
             {canViewAllDebt && (
-              <NavItem href="/debt"            icon={<IconCoin />}       label="Công nợ toàn công ty"  pathname={pathname} onClose={onClose} />
+              <NavItem href="/debt"            icon="💵" label="Công nợ toàn công ty"  pathname={pathname} onClose={onClose} />
             )}
-            <NavItem href="/work-log"          icon={<IconJournal />}    label="Nhật ký làm việc"      pathname={pathname} onClose={onClose} />
+            <NavItem href="/work-log"          icon="📔" label="Nhật ký làm việc"      pathname={pathname} onClose={onClose} />
             {canManageRoles && (
-              <NavItem href="/admin/roles"     icon={<IconUsers />}      label="Vai trò & phân quyền"  pathname={pathname} onClose={onClose} />
+              <NavItem href="/admin/roles"     icon="🔑" label="Vai trò & phân quyền"  pathname={pathname} onClose={onClose} />
             )}
             {canManageDatabase && (
-              <NavItem href="/admin/backups"   icon={<IconDB />}         label="Backup dữ liệu"        pathname={pathname} onClose={onClose} />
+              <NavItem href="/admin/backups"   icon="💾" label="Backup dữ liệu"        pathname={pathname} onClose={onClose} />
             )}
             {canManageDatabase && (
-              <NavItem href="/admin/migrate"   icon={<IconDB />}         label="Cài đặt Database"      pathname={pathname} onClose={onClose} />
+              <NavItem href="/admin/migrate"   icon="🗄️" label="Cài đặt Database"      pathname={pathname} onClose={onClose} />
             )}
           </div>
         )}
@@ -363,7 +301,7 @@ export default function Sidebar({ onClose }) {
         <div className="px-3 py-3">
           <button onClick={handleLogout}
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-red-700 hover:bg-red-50 transition-colors">
-            <IconLogout />
+            <span className="text-lg">🚪</span>
             Đăng xuất
           </button>
         </div>
