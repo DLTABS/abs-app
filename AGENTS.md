@@ -1,11 +1,14 @@
-# Savitax — Hệ thống nội bộ
+# Đại lý thuế ABS — Hệ thống nội bộ
 
-Web app quản lý nội bộ cho công ty dịch vụ kế toán/thuế Savitax: quản lý khách hàng, checklist
-công việc hàng tháng/quý, công nợ dịch vụ, KPI nhân viên/phòng ban, phân quyền theo vai trò.
+Web app quản lý nội bộ cho đại lý thuế ABS: quản lý khách hàng, checklist công việc hàng
+tháng/quý, công nợ dịch vụ, KPI nhân viên/phòng ban, phân quyền theo vai trò. Nhân bản từ
+`app.savitax.vn` (2026-07) — cùng codebase/nghiệp vụ, hạ tầng (GitHub/Supabase/Vercel/domain)
+và dữ liệu hoàn toàn tách biệt, không chia sẻ gì với Savitax. Xem `docs/clone-app-checklist.md`
+(nếu còn giữ lại) để biết lịch sử quá trình nhân bản.
 
-- **Production**: https://app.savitax.vn (deploy qua Vercel, region Singapore `sin1`)
-- **Repo**: https://github.com/Savitax-dev/savitax-app (nhánh `main`, push là tự deploy)
-- **Database**: Supabase (Postgres + Auth + Storage), project ref `ykorxlkgsmzskdybebzg`
+- **Production**: https://app.dailythueabs.vn (deploy qua Vercel, region Singapore `sin1`)
+- **Repo**: https://github.com/DLTABS/abs-app (nhánh `main`, push là tự deploy)
+- **Database**: Supabase (Postgres + Auth + Storage), project ref `nqerqxmqplyszhfggrqm`
 
 ## Stack & quy ước code
 
@@ -38,8 +41,8 @@ công việc hàng tháng/quý, công nợ dịch vụ, KPI nhân viên/phòng b
 
 ## Quy trình làm việc
 
-- Sửa code tại đây → `git push` lên `main` → Vercel tự build & deploy `app.savitax.vn` (~1-2
-  phút). Không cần thao tác tay phía hosting.
+- Sửa code tại đây → `git push` lên `main` → Vercel tự build & deploy `app.dailythueabs.vn`
+  (~1-2 phút). Không cần thao tác tay phía hosting.
 - SQL migration mới (cột/bảng/policy thêm) phải đưa file vào `sql/` **và** nhờ người dùng tự
   chạy trong Supabase SQL Editor — không có kết nối Postgres trực tiếp từ máy này (project
   dùng IPv6, sandbox không hỗ trợ), chỉ dùng được REST API qua `@supabase/supabase-js`.
