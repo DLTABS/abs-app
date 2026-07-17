@@ -160,34 +160,46 @@ export default function RoomPage({ params }) {
   }
 
   // ── Export Excel: Công nợ phòng ──────────────────────────────────────────
+  // dueThisMonth: công ty quý chưa tới hạn thu (hoặc còn trong hạn khoan) không tính vào %/tổng
+  // — xem lib/feeDue.js. isSecondary: công ty phụ trách phụ chỉ theo dõi, không cộng doanh thu.
   const exportCongNo = () => {
     const roomName = room ? room.name : 'Phong'
     const wb = XLSX.utils.book_new()
 
-    // Sheet: Công nợ
     const rows = [
       ['CÔNG NỢ PHÒNG ' + roomName.toUpperCase() + ' — T' + selMonth + '/' + selYear],
       [],
-      ['Nhân viên', 'Công ty', 'MST', 'Phí kế toán (đ)', 'Đã thu KT (đ)', 'Còn phải thu (đ)', 'Dịch vụ khác (đ)', 'Trạng thái'],
+      ['Nhân viên', 'Công ty', 'MST', 'Phí kế toán (đ)', 'Đã thu KT (đ)', 'Còn phải thu (đ)', 'Dịch vụ khác (đ)', 'Trạng thái', 'Ghi chú'],
     ]
     let totFee = 0, totKetoan = 0, totKhach = 0
     for (const s of staffData) {
+      let sFee = 0, sKetoan = 0
+      const staffRows = []
       for (const c of s.clients) {
-        const fee     = Number(c.monthly_fee) || 0
-        const ketoan  = Number(c.collected) || 0
+        const dueThisMonth = feeCountsForMonth(c.fee_period, selYear, selMonth)
+        const fee     = dueThisMonth ? Number(c.monthly_fee) || 0 : 0
+        const ketoan  = dueThisMonth ? Number(c.collected) || 0 : 0
         const khach   = Number(c.collectedKhach) || 0
         const remain  = Math.max(0, fee - ketoan)
-        const status  = fee === 0 ? '—' : ketoan >= fee ? 'Đã thu đủ' : ketoan > 0 ? 'Thu một phần' : 'Chưa thu'
-        totFee += fee; totKetoan += ketoan; totKhach += khach
-        rows.push([s.full_name, c.name, c.tax_code, fee, ketoan, remain, khach, status])
+        const status  = !dueThisMonth ? 'Chưa đến hạn' : fee === 0 ? '—' : ketoan >= fee ? 'Đã thu đủ' : ketoan > 0 ? 'Thu một phần' : 'Chưa thu'
+        const note    = c.isSecondary ? 'Phụ trách phụ (không tính vào tổng)' : ''
+        if (!c.isSecondary) { sFee += fee; sKetoan += ketoan }
+        staffRows.push([s.full_name, c.name, c.tax_code, fee, ketoan, remain, khach, status, note])
       }
+      if (staffRows.length === 0) continue
+      const sPct = sFee === 0 ? 0 : Math.round(sKetoan / sFee * 100)
+      rows.push(...staffRows)
+      rows.push(['', 'Tổng ' + s.full_name + ' (' + sPct + '% thu hồi)', '', sFee, sKetoan, Math.max(0, sFee - sKetoan), '', '', ''])
+      rows.push([])
+      totFee += sFee; totKetoan += sKetoan
+      totKhach += s.clients.reduce((a, c) => a + (Number(c.collectedKhach) || 0), 0)
     }
-    rows.push([])
-    rows.push(['TỔNG', '', '', totFee, totKetoan, Math.max(0, totFee - totKetoan), totKhach, ''])
+    const totPct = totFee === 0 ? 0 : Math.round(totKetoan / totFee * 100)
+    rows.push(['TỔNG PHÒNG (' + totPct + '% thu hồi)', '', '', totFee, totKetoan, Math.max(0, totFee - totKetoan), totKhach, '', ''])
 
     const ws = XLSX.utils.aoa_to_sheet(rows)
-    ws['!cols'] = [{ wch: 22 }, { wch: 35 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 14 }]
-    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }]
+    ws['!cols'] = [{ wch: 22 }, { wch: 35 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 14 }, { wch: 30 }]
+    ws['!merges'] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 8 } }]
     XLSX.utils.book_append_sheet(wb, ws, 'Công nợ')
 
     XLSX.writeFile(wb, `CongNoPhong_${roomName}_T${selMonth}_${selYear}.xlsx`)
@@ -423,10 +435,13 @@ export default function RoomPage({ params }) {
                 khach:  Number(c.collectedKhach) || 0,
                 dueThisMonth: feeCountsForMonth(c.fee_period, selYear, selMonth),
               })))
-              const totalFee    = allClients.reduce((a, c) => a + (c.dueThisMonth ? Number(c.monthly_fee) || 0 : 0), 0)
-              const totalKetoan = allClients.reduce((a, c) => a + (c.dueThisMonth ? c.ketoan : 0), 0)
+              // Công ty "phụ trách phụ" chỉ để theo dõi, KHÔNG cộng vào doanh thu/công nợ của
+              // nhân viên phụ — chỉ tính tổng theo công ty mình là nhân viên chính.
+              const ownedClients = allClients.filter(c => !c.isSecondary)
+              const totalFee    = ownedClients.reduce((a, c) => a + (c.dueThisMonth ? Number(c.monthly_fee) || 0 : 0), 0)
+              const totalKetoan = ownedClients.reduce((a, c) => a + (c.dueThisMonth ? c.ketoan : 0), 0)
               const debtPct     = totalFee === 0 ? 0 : Math.round(totalKetoan / totalFee * 100)
-              const overdue     = allClients.filter(c => c.dueThisMonth && isMonthPast && c.ketoan < Number(c.monthly_fee) && Number(c.monthly_fee) > 0)
+              const overdue     = ownedClients.filter(c => c.dueThisMonth && isMonthPast && c.ketoan < Number(c.monthly_fee) && Number(c.monthly_fee) > 0)
 
               const debtStatus = (ketoan, fee, notDueYet) => {
                 if (notDueYet) {
@@ -499,8 +514,10 @@ export default function RoomPage({ params }) {
                       dueThisMonth: feeCountsForMonth(c.fee_period, selYear, selMonth),
                     }))
                     if (myClients.length === 0) return null
-                    const sFee    = myClients.reduce((a, c) => a + (c.dueThisMonth ? Number(c.monthly_fee) || 0 : 0), 0)
-                    const sKetoan = myClients.reduce((a, c) => a + (c.dueThisMonth ? c.ketoan : 0), 0)
+                    // Công ty phụ trách phụ chỉ theo dõi, không cộng vào doanh thu/công nợ.
+                    const sOwnedClients = myClients.filter(c => !c.isSecondary)
+                    const sFee    = sOwnedClients.reduce((a, c) => a + (c.dueThisMonth ? Number(c.monthly_fee) || 0 : 0), 0)
+                    const sKetoan = sOwnedClients.reduce((a, c) => a + (c.dueThisMonth ? c.ketoan : 0), 0)
                     const sPct    = sFee === 0 ? 0 : Math.round(sKetoan / sFee * 100)
                     return (
                       <div key={s.id} className="bg-white border border-gray-100 rounded-2xl overflow-hidden">
@@ -540,6 +557,9 @@ export default function RoomPage({ params }) {
                                           : 'bg-blue-100 text-blue-700 border-blue-300')}>
                                         {c.report_type === 'quarterly' ? 'Quý' : 'Tháng'}
                                       </span>
+                                      {c.isSecondary && (
+                                        <span className="text-xs bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded-full flex-shrink-0">Phụ trách phụ</span>
+                                      )}
                                     </div>
                                     <div className="ml-3.5 mt-0.5 space-y-0.5">
                                       {/* Kế toán row */}
