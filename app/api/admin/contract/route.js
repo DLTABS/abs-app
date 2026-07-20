@@ -25,8 +25,8 @@ export async function GET(request) {
   if (!c) return new Response('Client not found', { status: 404 })
 
   const origin   = new URL(request.url).origin
-  const logoUrl  = origin + '/logo-savitax.png'
-  const hdLogo   = origin + '/logo-savitax-hddv.png'
+  const logoUrl  = origin + '/logo-abs.png'
+  const hdLogo   = origin + '/logo-abs.png'
   const startRaw = c.contract_start || new Date()
   const soHD     = contractNumber(startRaw, c.client_code || c.tax_code || '')
   const ngayLap  = viFullDate(startRaw)
@@ -56,21 +56,20 @@ export async function GET(request) {
     <tr><td class="role">ĐẠI DIỆN BÊN A</td><td class="role">ĐẠI DIỆN BÊN B</td></tr>
     <tr><td class="note">(Ký, ghi rõ họ tên)</td><td class="note">(Ký, ghi rõ họ tên)</td></tr>
     <tr><td class="gap"></td><td class="gap"></td></tr>
-    <tr><td class="nm">${esc(c.representative)}</td><td class="nm">ĐINH THỊ HUYỀN</td></tr>
+    <tr><td class="nm">${esc(c.representative)}</td><td class="nm">HOÀNG THỊ HƯƠNG</td></tr>
   </table>`
 
   // Header band dạng bảng (logo trái + tên/địa chỉ canh giữa) — render đúng cả browser & Word
   const headerBand = (logoSrc) => `<table class="hdrtbl"><tr>
-      <td class="logocell"><img class="logo" src="${logoSrc}" alt="SAVITAX"/></td>
+      <td class="logocell"><img class="logo" src="${logoSrc}" alt="ABS"/></td>
       <td class="infocell">
-        <div class="hdr-name">CÔNG TY CỔ PHẦN TƯ VẤN THUẾ SAVITAX</div>
-        <div class="hdr-addr">16 Bình Lợi, Phường Bình Lợi Trung, Thành phố Hồ Chí Minh</div>
+        <div class="hdr-name">CÔNG TY TNHH ĐÀO TẠO VÀ DỊCH VỤ ABS GROUP</div>
+        <div class="hdr-addr">Số 05, Hoàng Văn Thái, Võ Cường, Tỉnh Bắc Ninh, Việt Nam</div>
       </td>
     </tr></table>`
   const footerBand = `<div class="ftr-band">
-      <div class="name">CÔNG TY CỔ PHẦN TƯ VẤN THUẾ SAVITAX</div>
-      <div class="ln">Website: www.savitax.vn</div>
-      <div class="ln">Hotline: 0989 666 253 (Ms. Huyền) – 0916 084 266 (Ms. Trang)</div>
+      <div class="name">CÔNG TY TNHH ĐÀO TẠO VÀ DỊCH VỤ ABS GROUP</div>
+      <div class="ln">Hotline: 0962 511 222</div>
     </div>`
 
   // Nội dung chính dùng chung
@@ -83,7 +82,7 @@ export async function GET(request) {
         <li class="cancu">Căn cứ Luật Quản lý thuế số 38/2019/QH14 có hiệu lực thi hành từ 01/07/2020.</li>
         <li class="cancu">Căn cứ khả năng và nhu cầu của các bên.</li>
       </ul>
-      <p>Hợp đồng dịch vụ Tư vấn thuế (gọi là "Hợp đồng") này được lập <span class="b">${esc(ngayLap)}</span> tại trụ sở của Công ty CP Tư Vấn Thuế SAVITAX và thực hiện bởi các Bên tham gia dưới đây:</p>
+      <p>Hợp đồng dịch vụ Tư vấn thuế (gọi là "Hợp đồng") này được lập <span class="b">${esc(ngayLap)}</span> tại trụ sở của Công ty TNHH Đào tạo và Dịch vụ ABS GROUP và thực hiện bởi các Bên tham gia dưới đây:</p>
 
       <p class="b">Bên A: (Bên sử dụng dịch vụ):</p>
       <p class="b" style="text-transform:uppercase">${esc(c.name)}</p>
@@ -93,13 +92,13 @@ export async function GET(request) {
       <p>Điện thoại: ............................................</p>
 
       <p class="b">Bên B: (Bên cung cấp dịch vụ):</p>
-      <p class="b">CÔNG TY CỔ PHẦN TƯ VẤN THUẾ SAVITAX</p>
-      <p>Địa chỉ: 16 Bình Lợi, Phường Bình Lợi Trung, Tp Hồ Chí Minh, Việt Nam</p>
-      <p>Mã số thuế: 0313 906 307</p>
-      <p>Tài khoản Ngân hàng: Ngân Hàng Thương Mại Á Châu – CN Nguyễn Trãi</p>
-      <p>Số tài khoản: 3878556868</p>
-      <table class="rep"><tr><td>Đại diện là Bà: <span class="b">Đinh Thị Huyền</span></td><td class="cv">Chức vụ: Giám đốc</td></tr></table>
-      <p>Điện thoại: 0989.666.253</p>
+      <p class="b">CÔNG TY TNHH ĐÀO TẠO VÀ DỊCH VỤ ABS GROUP</p>
+      <p>Địa chỉ: Số 05, Hoàng Văn Thái, Võ Cường, Tỉnh Bắc Ninh, Việt Nam</p>
+      <p>Mã số thuế: 2300 856 966</p>
+      <p>Tài khoản Ngân hàng: Ngân hàng TMCP Ngoại thương Việt Nam - Vietcombank</p>
+      <p>Số tài khoản: 0351001043923</p>
+      <table class="rep"><tr><td>Đại diện là Bà: <span class="b">Hoàng Thị Hương</span></td><td class="cv">Chức vụ: Giám đốc</td></tr></table>
+      <p>Điện thoại: 0962.511.222</p>
 
       <p>Bên A và bên B có thể được gọi là "các Bên". Sau khi thoả thuận các Bên nhất trí ký Hợp đồng này gồm các điều khoản sau:</p>
 
@@ -210,38 +209,38 @@ export async function GET(request) {
   const baseCss = `
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:'Times New Roman',serif;font-size:13pt;color:#1a1a1a;line-height:1.5;background:#fff}
-    .hdrtbl{width:100%;border-collapse:collapse;border-bottom:2px solid #C9A84C}
+    .hdrtbl{width:100%;border-collapse:collapse;border-bottom:2px solid #EC7F2A}
     .hdrtbl td{border:none;padding:0 0 5px;vertical-align:middle}
     .hdrtbl .logocell{width:118px}
     .hdrtbl .logo{height:50px;width:auto}
     .hdrtbl .infocell{text-align:center}
-    .hdr-name{font-weight:bold;color:#8B1A1A;font-size:13.5pt;line-height:1.25}
+    .hdr-name{font-weight:bold;color:#205FA6;font-size:13.5pt;line-height:1.25}
     .hdr-addr{font-size:10pt;color:#444}
-    .ftr-band{border-top:2px solid #C9A84C;padding-top:4px;text-align:center;line-height:1.4}
-    .ftr-band .name{color:#8B1A1A;font-weight:bold;font-size:10.5pt}
+    .ftr-band{border-top:2px solid #EC7F2A;padding-top:4px;text-align:center;line-height:1.4}
+    .ftr-band .name{color:#205FA6;font-weight:bold;font-size:10.5pt}
     .ftr-band .ln{font-size:9.5pt;color:#555}
-    h1{text-align:center;font-size:16pt;font-weight:bold;margin:6px 0 4px;color:#8B1A1A;letter-spacing:.5px}
-    .sohd{text-align:center;font-size:12pt;margin-bottom:10px;color:#8B1A1A;font-weight:bold}
+    h1{text-align:center;font-size:16pt;font-weight:bold;margin:6px 0 4px;color:#205FA6;letter-spacing:.5px}
+    .sohd{text-align:center;font-size:12pt;margin-bottom:10px;color:#205FA6;font-weight:bold}
     p{margin:5px 0;text-align:justify}
     .b{font-weight:bold}.red{color:#c0392b}
-    h2{font-size:13pt;font-weight:bold;margin:12px 0 4px;color:#8B1A1A;border-left:3px solid #C9A84C;padding-left:8px}
+    h2{font-size:13pt;font-weight:bold;margin:12px 0 4px;color:#205FA6;border-left:3px solid #EC7F2A;padding-left:8px}
     ul{margin:4px 0 6px 6px;list-style:none}
     li{margin:3px 0;text-align:justify;padding-left:18px;position:relative}
-    li:before{content:"–";position:absolute;left:2px;color:#C9A84C;font-weight:bold}
+    li:before{content:"–";position:absolute;left:2px;color:#EC7F2A;font-weight:bold}
     li.cancu{font-style:italic;color:#333}
     .rep{width:100%;border-collapse:collapse;margin:5px 0}
     .rep td{border:none;padding:0;vertical-align:top}
     .rep td.cv{width:34%}
     .feeline{background:#FFF8E1;border:1px solid #F0D98C;border-radius:4px;padding:3px 7px}
     table.fee{width:100%;border-collapse:collapse;margin:8px 0;font-size:10.5pt}
-    table.fee th,table.fee td{border:1px solid #b8923a;padding:5px 6px;vertical-align:top}
-    table.fee th{background:#8B1A1A;color:#fff;text-align:center;font-weight:bold;font-size:9.5pt}
+    table.fee th,table.fee td{border:1px solid #205FA6;padding:5px 6px;vertical-align:top}
+    table.fee th{background:#205FA6;color:#fff;text-align:center;font-weight:bold;font-size:9.5pt}
     table.fee td.c{text-align:center}table.fee td.r{text-align:right}
     table.fee tr.odd td{background:#FCF6E6}
-    .plx{text-align:center;font-size:14pt;font-weight:bold;color:#8B1A1A;margin:0 0 8px;padding-top:6px;page-break-before:always;break-before:page}
+    .plx{text-align:center;font-size:14pt;font-weight:bold;color:#205FA6;margin:0 0 8px;padding-top:6px;page-break-before:always;break-before:page}
     .sign{width:100%;border-collapse:collapse;margin-top:20px;page-break-inside:avoid;break-inside:avoid}
     .sign td{border:none;width:50%;text-align:center;vertical-align:top;padding:0 6px}
-    .sign .role{font-weight:bold;font-size:12pt;color:#8B1A1A}
+    .sign .role{font-weight:bold;font-size:12pt;color:#205FA6}
     .sign .note{font-size:9pt;font-style:italic;color:#666;padding-top:2px}
     .sign .gap{height:58px}
     .sign .nm{font-weight:bold;font-size:11.5pt;text-transform:uppercase}`
@@ -291,7 +290,7 @@ export async function GET(request) {
   .watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:300px;opacity:.045;z-index:0;pointer-events:none}
   .sheet{position:relative;z-index:1}
   .noprint{position:fixed;top:10px;right:14px;z-index:9}
-  .btn{cursor:pointer;border:none;padding:8px 18px;border-radius:6px;font-size:12pt;font-weight:bold;background:#8B1A1A;color:#fff}
+  .btn{cursor:pointer;border:none;padding:8px 18px;border-radius:6px;font-size:12pt;font-weight:bold;background:#205FA6;color:#fff}
   @media screen{
     body{background:#e9e9ee}
     .sheet{max-width:210mm;margin:0 auto;background:#fff;padding:2cm 1.5cm 2cm 3cm;min-height:100vh;box-shadow:0 0 10px rgba(0,0,0,.15)}

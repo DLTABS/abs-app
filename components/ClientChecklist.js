@@ -380,7 +380,7 @@ export default function ClientChecklist({ client, clientMonth, onMonthChange, on
   const totalC     = prevBalVat + totalB
   const monthPad   = String(clientMonth).padStart(2,'0')
   const clientCode = client.client_code || client.tax_code || ''
-  const qrContent  = clientCode + '_ThanhToanPhiDichvu_T' + monthPad + '_Savitax'
+  const qrContent  = clientCode + '_ThanhToanPhiDichvu_T' + monthPad + '_ABS'
 
   const credsByCat = {}
   for (const c of creds) {

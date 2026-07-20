@@ -54,13 +54,13 @@ export async function GET(request) {
   // QR VietQR
   const monthPad  = String(month).padStart(2, '0')
   const clientCode = client.client_code || client.tax_code || ''
-  const qrContent  = clientCode + '_ThanhToanPhiDichvu_T' + monthPad + '_Savitax'
-  const bankId     = 'ACB'
-  const accountNo  = '3878556868'
+  const qrContent  = clientCode + '_ThanhToanPhiDichvu_T' + monthPad + '_ABS'
+  const bankId     = 'VCB'
+  const accountNo  = '0351001043923'
   const qrUrl = 'https://img.vietqr.io/image/' + bankId + '-' + accountNo +
     '-qr_only.png?amount=' + totalC +
     '&addInfo=' + encodeURIComponent(qrContent) +
-    '&accountName=' + encodeURIComponent('CONG TY CP TU VAN THUE SAVITAX')
+    '&accountName=' + encodeURIComponent('ABS GROUP')
 
   const dayStr    = new Date().toLocaleDateString('vi-VN')
   const monthLabel = 'Tháng ' + month + '/' + year
@@ -125,13 +125,13 @@ export async function GET(request) {
 
   <div class="hdr">
     <div>
-      <div class="cname">CÔNG TY CỔ PHẦN TƯ VẤN THUẾ SAVITAX</div>
+      <div class="cname">CÔNG TY TNHH ĐÀO TẠO VÀ DỊCH VỤ ABS GROUP</div>
       <div class="csub">ĐẠI LÝ THUẾ – THÀNH LẬP DOANH NGHIỆP</div>
-      <div class="csub">16 Bình Lợi, Phường Bình Lợi Trung, Tp. HCM</div>
-      <div class="csub">☎ 0989 666 253 – 0916 084 266 &nbsp;|&nbsp; www.savitax.vn</div>
+      <div class="csub">Số 05, Hoàng Văn Thái, Võ Cường, Bắc Ninh</div>
+      <div class="csub">☎ 0962 511 222</div>
     </div>
     <div class="docno">
-      <div><b>SVT.MB13</b></div>
+      <div><b>ABS.MB13</b></div>
       <div>Ngày: ${dayStr}</div>
     </div>
   </div>
@@ -227,19 +227,19 @@ export async function GET(request) {
     Đề nghị quý khách thanh toán <b style="color:#c62828" id="dlAmt">${fmt(totalC)} đồng</b> trước ngày <b>20/${month}/${year}</b>
   </p>
 
-  <div class="foot" style="align-items:center">
+  <div class="foot" style="align-items:center;justify-content:space-between;padding:0 100px">
     <!-- QR only -->
     <div class="qrbox">
       <img src="${qrUrl}" alt="QR" style="width:120px;height:120px;display:block" onerror="this.style.display='none'"/>
       <div class="bankinfo">
-        <b>ACB – 3878556868</b><br/>
-        SAVITAX<br/>
+        <b>VCB – 0351001043923</b><br/>
+        ABS GROUP<br/>
         <span style="color:#003087;font-size:7.5pt;word-break:break-all">${qrContent}</span>
       </div>
     </div>
 
-    <!-- Người đề nghị — centered in remaining space -->
-    <div style="flex:1;display:flex;align-items:center;justify-content:center">
+    <!-- Người đề nghị -->
+    <div style="display:flex;align-items:center;justify-content:center">
       <div style="text-align:center">
         <div style="font-size:9pt;font-weight:bold;margin-bottom:4px">Người đề nghị</div>
         <div style="height:44px;border-bottom:1px solid #ccc;width:140px;margin:0 auto"></div>
