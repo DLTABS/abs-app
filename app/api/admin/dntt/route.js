@@ -99,7 +99,7 @@ export async function GET(request) {
   .rowC{background:#fce4ec;font-weight:bold}
   .note{font-style:italic;font-size:8.5pt;color:#555;margin:3px 0}
   .deadline{font-size:10pt;margin:6px 0}
-  .foot{display:flex;gap:16px;margin-top:12px;align-items:flex-start}
+  .foot{display:flex;justify-content:space-between;margin-top:12px;align-items:center}
   .qrbox{text-align:center;flex-shrink:0}
   .qrbox img{width:110px;height:110px;display:block;margin:0 auto}
   .qrlbl{font-size:8pt;color:#333;margin-top:4px;line-height:1.5}
