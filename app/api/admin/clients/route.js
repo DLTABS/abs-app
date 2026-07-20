@@ -111,9 +111,10 @@ export async function POST(request) {
       client_id: data.id,
       year: effectY,
       month: effectM,
+      type: 'ketoan',
       amount: Number(monthly_fee),
       note: fee_start ? ('Áp dụng từ T' + effectM + '/' + effectY) : 'Phí ban đầu',
-    }, { onConflict: 'client_id,year,month' })
+    }, { onConflict: 'client_id,year,month,type' })
   }
 
   return Response.json({ data })
