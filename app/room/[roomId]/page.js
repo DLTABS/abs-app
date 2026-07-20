@@ -69,7 +69,7 @@ export default function RoomPage({ params }) {
       else {
         const email = sd.session.user.email || ''
         role = (sd.session.user.user_metadata && sd.session.user.user_metadata.role)
-          || (email === 'admin@savitax.vn' ? 'admin' : 'staff')
+          || (email === 'admin@dailythueabs.vn' ? 'admin' : 'staff')
       }
       if (!['admin', 'leader', 'manager'].includes(role) && myRoomId !== roomId) setForbidden(true)
       setIsAdmin(['admin', 'leader', 'manager'].includes(role))

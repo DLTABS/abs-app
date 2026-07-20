@@ -78,7 +78,7 @@ export default function ChangePasswordPage() {
             <input type="password" required value={currentPass}
               onChange={e => setCurrentPass(e.target.value)}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2"
-              style={{ '--tw-ring-color': '#8B1A1A' }} />
+              style={{ '--tw-ring-color': '#205FA6' }} />
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Mật khẩu mới</label>
@@ -86,14 +86,14 @@ export default function ChangePasswordPage() {
               onChange={e => setNewPass(e.target.value)}
               placeholder="Tối thiểu 6 ký tự"
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2"
-              style={{ '--tw-ring-color': '#8B1A1A' }} />
+              style={{ '--tw-ring-color': '#205FA6' }} />
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Xác nhận mật khẩu mới</label>
             <input type="password" required value={confirmPass}
               onChange={e => setConfirmPass(e.target.value)}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2"
-              style={{ '--tw-ring-color': '#8B1A1A' }} />
+              style={{ '--tw-ring-color': '#205FA6' }} />
           </div>
 
           {error && <div className="bg-red-50 text-red-600 text-sm px-3 py-2 rounded-lg">{error}</div>}
@@ -101,7 +101,7 @@ export default function ChangePasswordPage() {
 
           <button type="submit" disabled={saving}
             className="w-full text-white py-2.5 rounded-xl text-sm font-medium disabled:opacity-50 transition-colors"
-            style={{ backgroundColor: '#8B1A1A' }}>
+            style={{ backgroundColor: '#205FA6' }}>
             {saving ? 'Đang lưu...' : 'Đổi mật khẩu'}
           </button>
         </form>

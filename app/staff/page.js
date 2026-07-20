@@ -292,7 +292,7 @@ export default function StaffPage() {
 
         <div className="flex items-start justify-between mb-5">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Nhân viên Savitax</h1>
+            <h1 className="text-xl font-bold text-gray-900">Nhân viên ABS</h1>
             <p className="text-sm text-gray-500 mt-0.5">{staffList.length} nhân viên</p>
           </div>
           <button
@@ -323,7 +323,7 @@ export default function StaffPage() {
                   <label className="text-xs text-gray-500 mb-1 block">Email *</label>
                   <input type="email" required value={form.email}
                     onChange={e => setForm({ ...form, email: e.target.value })}
-                    placeholder="nv@savitax.vn"
+                    placeholder="nv@dailythueabs.vn"
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div>

@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase'
 
 export default function LoginPage() {
@@ -9,6 +10,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError]       = useState('')
   const [loading, setLoading]   = useState(false)
+  const [logoError, setLogoError] = useState(false)
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -32,10 +34,23 @@ export default function LoginPage() {
 
         {/* Logo & Title */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-blue-600 rounded-2xl mb-4">
-            <span className="text-white text-xl font-bold">S</span>
-          </div>
-          <h1 className="text-2xl font-semibold text-gray-900">Savitax</h1>
+          {!logoError ? (
+            <div className="inline-flex items-center justify-center w-14 h-14 bg-white rounded-2xl mb-4 shadow-sm border border-gray-100 p-1.5">
+              <Image
+                src="/logo-abs.png"
+                alt="ABS"
+                width={56}
+                height={56}
+                className="object-contain w-full h-full"
+                onError={() => setLogoError(true)}
+              />
+            </div>
+          ) : (
+            <div className="inline-flex items-center justify-center w-14 h-14 bg-[#205FA6] rounded-2xl mb-4">
+              <span className="text-white text-xl font-bold">A</span>
+            </div>
+          )}
+          <h1 className="text-2xl font-semibold text-gray-900">Đại lý thuế ABS</h1>
           <p className="text-gray-500 text-sm mt-1">Hệ thống quản lý nội bộ</p>
         </div>
 
@@ -51,10 +66,10 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
-                placeholder="ten@savitax.vn"
+                placeholder="ten@dailythueabs.vn"
                 required
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           focus:outline-none focus:ring-2 focus:ring-[#205FA6] focus:border-transparent"
               />
             </div>
 
@@ -69,7 +84,7 @@ export default function LoginPage() {
                 placeholder="••••••••"
                 required
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm
-                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           focus:outline-none focus:ring-2 focus:ring-[#205FA6] focus:border-transparent"
               />
             </div>
 
@@ -82,8 +97,8 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-medium
-                         hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[#205FA6] text-white py-2 rounded-lg text-sm font-medium
+                         hover:bg-[#184a80] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </button>

@@ -12,8 +12,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "App Savitax",
-  description: "Hệ thống nội bộ Savitax",
+  title: "Đại lý thuế ABS",
+  description: "Hệ thống nội bộ Đại lý thuế ABS",
 };
 
 export default function RootLayout({ children }) {

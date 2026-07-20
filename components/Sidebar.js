@@ -6,8 +6,8 @@ import Image from 'next/image'
 import { createClient } from '@/lib/supabase'
 import { loadPermissionData, can, clearPermissionCache } from '@/lib/permissions'
 
-/* ─── Brand colors ───────────────────────────────────────────────
-   Đỏ chủ đạo : #8B1A1A   Gold chủ đạo : #C9A84C
+/* ─── Brand colors (theo logo ABS) ────────────────────────────────
+   Xanh dương chủ đạo : #205FA6   Cam nhấn : #EC7F2A
 ──────────────────────────────────────────────────────────────── */
 
 /* ─── Icons ─────────────────────────────────────────────────── */
@@ -37,8 +37,8 @@ function NavItem({ href, icon, label, pathname, onClose }) {
     <Link href={href} onClick={onClose}
       className={'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ' +
         (active
-          ? 'bg-[#8B1A1A] text-white shadow-sm'
-          : 'text-gray-600 hover:bg-red-50 hover:text-[#8B1A1A]')}>
+          ? 'bg-[#205FA6] text-white shadow-sm'
+          : 'text-gray-600 hover:bg-blue-50 hover:text-[#205FA6]')}>
       <span className="text-lg">{icon}</span>
       {label}
     </Link>
@@ -94,7 +94,7 @@ export default function Sidebar({ onClose }) {
       if (!staffData || !staffData.role) {
         const email = session.user.email || ''
         const metaRole = session.user.user_metadata && session.user.user_metadata.role
-        const fallbackRole = metaRole || (email === 'admin@savitax.vn' ? 'admin' : 'staff')
+        const fallbackRole = metaRole || (email === 'admin@dailythueabs.vn' ? 'admin' : 'staff')
         staffData = staffData
           ? { ...staffData, role: fallbackRole }
           : { id: session.user.id, full_name: email.split('@')[0], role: fallbackRole, rooms: null }
@@ -144,12 +144,12 @@ export default function Sidebar({ onClose }) {
       {/* ── Logo header ── */}
       <div className="flex-shrink-0 border-b border-gray-100">
         {/* Top brand band */}
-        <div className="bg-gradient-to-r from-[#8B1A1A] to-[#6B1212] px-4 py-3 flex items-center gap-3">
+        <div className="bg-gradient-to-r from-[#205FA6] to-[#123F73] px-4 py-3 flex items-center gap-3">
           {!logoError ? (
             <div className="w-10 h-10 rounded-lg overflow-hidden bg-white flex items-center justify-center flex-shrink-0 shadow-md p-0.5">
               <Image
-                src="/logo-savitax.png"
-                alt="Savitax"
+                src="/logo-abs.png"
+                alt="ABS"
                 width={40}
                 height={40}
                 className="object-contain w-full h-full"
@@ -159,31 +159,31 @@ export default function Sidebar({ onClose }) {
           ) : (
             /* Fallback logo mark khi chưa có file */
             <div className="w-9 h-9 rounded-lg bg-white flex items-center justify-center flex-shrink-0 shadow-sm">
-              <span className="text-[#8B1A1A] text-base font-black">S</span>
+              <span className="text-[#205FA6] text-base font-black">A</span>
             </div>
           )}
           <div>
-            <p className="text-sm font-bold text-white tracking-wide">SAVITAX</p>
-            <p className="text-xs text-red-200">Hệ thống nội bộ</p>
+            <p className="text-sm font-bold text-white tracking-wide">ABS</p>
+            <p className="text-xs text-blue-100">Hệ thống nội bộ</p>
           </div>
         </div>
 
         {/* Greeting bar */}
         {user && (
-          <div className="px-4 py-2.5 bg-amber-50 border-b border-amber-100 flex items-center gap-2.5">
+          <div className="px-4 py-2.5 bg-orange-50 border-b border-orange-100 flex items-center gap-2.5">
             {/* Avatar */}
             <div className="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-white text-xs font-bold shadow-sm"
-              style={{ background: 'linear-gradient(135deg,#8B1A1A,#C9A84C)' }}>
+              style={{ background: 'linear-gradient(135deg,#205FA6,#EC7F2A)' }}>
               {user.full_name ? user.full_name.trim().split(' ').pop().charAt(0).toUpperCase() : '?'}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xs font-semibold text-gray-800 truncate">
-                {greeting}, <span style={{ color: '#8B1A1A' }}>{firstName}</span> 👋
+                {greeting}, <span style={{ color: '#205FA6' }}>{firstName}</span> 👋
               </p>
               <div className="flex items-center gap-1.5">
                 <p className="text-xs text-gray-400 truncate">{ROLE_LABEL[role] || 'Nhân viên'}{user.rooms ? ' · ' + user.rooms.name : ''}</p>
                 <span className="text-gray-300">·</span>
-                <Link href="/change-password" onClick={onClose} className="text-xs hover:underline flex-shrink-0" style={{ color: '#8B1A1A' }}>
+                <Link href="/change-password" onClick={onClose} className="text-xs hover:underline flex-shrink-0" style={{ color: '#205FA6' }}>
                   Đổi mật khẩu
                 </Link>
               </div>
@@ -209,32 +209,32 @@ export default function Sidebar({ onClose }) {
           <NavItem href="/report" icon="📊" label="Báo cáo KPI" pathname={pathname} onClose={onClose} />
         )}
         {isManager && (
-          <NavItem href="/staff" icon="👥" label="Nhân viên Savitax" pathname={pathname} onClose={onClose} />
+          <NavItem href="/staff" icon="👥" label="Nhân viên ABS" pathname={pathname} onClose={onClose} />
         )}
 
         {/* Phòng nghiệp vụ */}
         {canViewRooms && (
           <div>
             <div className={'flex items-center rounded-xl overflow-hidden ' +
-              (onRoomPage || pathname === '/rooms' ? 'bg-[#8B1A1A]' : '')}>
+              (onRoomPage || pathname === '/rooms' ? 'bg-[#205FA6]' : '')}>
               <Link href="/rooms" onClick={onClose}
                 className={'flex-1 flex items-center gap-3 px-3 py-2.5 text-sm font-medium transition-all ' +
                   (pathname === '/rooms' || onRoomPage
                     ? 'text-white'
-                    : 'text-gray-600 hover:bg-red-50 hover:text-[#8B1A1A]')}>
+                    : 'text-gray-600 hover:bg-blue-50 hover:text-[#205FA6]')}>
                 <span className="text-lg">🏛️</span>
                 Phòng nghiệp vụ
               </Link>
               <button onClick={() => setRoomsOpen(v => !v)}
                 className={'px-2 py-2.5 transition-colors ' +
                   (onRoomPage || pathname === '/rooms'
-                    ? 'text-red-200 hover:text-white'
-                    : 'text-gray-400 hover:text-[#8B1A1A]')}>
+                    ? 'text-blue-100 hover:text-white'
+                    : 'text-gray-400 hover:text-[#205FA6]')}>
                 <IconChevron open={roomsOpen} />
               </button>
             </div>
             {roomsOpen && (
-              <div className="mt-0.5 ml-5 space-y-0.5 border-l-2 pl-3" style={{ borderColor: '#C9A84C40' }}>
+              <div className="mt-0.5 ml-5 space-y-0.5 border-l-2 pl-3" style={{ borderColor: '#EC7F2A40' }}>
                 {rooms.length === 0 && <p className="text-xs text-gray-400 px-2 py-1">Đang tải...</p>}
                 {rooms.map(room => {
                   const active = pathname === '/room/' + room.id
@@ -242,10 +242,10 @@ export default function Sidebar({ onClose }) {
                     <Link key={room.id} href={'/room/' + room.id} onClick={onClose}
                       className={'flex items-center gap-2.5 px-2 py-1.5 rounded-lg text-sm transition-all ' +
                         (active ? 'font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50')}
-                      style={active ? { color: '#8B1A1A', backgroundColor: '#8B1A1A18' } : {}}>
+                      style={active ? { color: '#205FA6', backgroundColor: '#205FA618' } : {}}>
                       <span className={'w-1.5 h-1.5 rounded-full flex-shrink-0 ' +
                         (active ? '' : 'bg-gray-300')}
-                        style={active ? { backgroundColor: '#C9A84C' } : {}} />
+                        style={active ? { backgroundColor: '#EC7F2A' } : {}} />
                       <span className="truncate">Phòng {room.name}</span>
                       {room.type === 'remote' && <span className="text-xs text-gray-400 ml-auto flex-shrink-0">Remote</span>}
                     </Link>
@@ -260,9 +260,9 @@ export default function Sidebar({ onClose }) {
         {showAdminSection && (
           <div className="pt-3">
             <div className="flex items-center gap-2 px-3 pb-2">
-              <div className="h-px flex-1" style={{ background: 'linear-gradient(to right, #C9A84C60, transparent)' }} />
-              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#C9A84C' }}>Quản trị</p>
-              <div className="h-px flex-1" style={{ background: 'linear-gradient(to left, #C9A84C60, transparent)' }} />
+              <div className="h-px flex-1" style={{ background: 'linear-gradient(to right, #EC7F2A60, transparent)' }} />
+              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: '#EC7F2A' }}>Quản trị</p>
+              <div className="h-px flex-1" style={{ background: 'linear-gradient(to left, #EC7F2A60, transparent)' }} />
             </div>
             {canManageRooms && (
               <NavItem href="/admin/rooms"     icon="🏛️" label="Quản lý phòng ban"     pathname={pathname} onClose={onClose} />
@@ -296,8 +296,8 @@ export default function Sidebar({ onClose }) {
 
       {/* ── User footer ── */}
       <div className="flex-shrink-0 border-t border-gray-100">
-        {/* Gold accent line */}
-        <div className="h-0.5" style={{ background: 'linear-gradient(to right, #8B1A1A, #C9A84C, #8B1A1A)' }} />
+        {/* Accent line */}
+        <div className="h-0.5" style={{ background: 'linear-gradient(to right, #205FA6, #EC7F2A, #205FA6)' }} />
         <div className="px-3 py-3">
           <button onClick={handleLogout}
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-medium text-gray-500 hover:text-red-700 hover:bg-red-50 transition-colors">

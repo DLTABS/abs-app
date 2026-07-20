@@ -248,7 +248,7 @@ export default function ClientsPage() {
       if (!me || !me.role) {
         const email = session.user.email || ''
         const metaRole = session.user.user_metadata && session.user.user_metadata.role
-        const fallbackRole = metaRole || (email === 'admin@savitax.vn' ? 'admin' : 'staff')
+        const fallbackRole = metaRole || (email === 'admin@dailythueabs.vn' ? 'admin' : 'staff')
         me = me ? { ...me, role: fallbackRole } : { id: session.user.id, full_name: email.split('@')[0], role: fallbackRole, rooms: null }
       }
       setMyStaff(me)

@@ -93,7 +93,7 @@ export default function DashboardPage() {
     .map(s => ({ ...s, score: score(s.task_pct, s.debt_pct) }))
     .sort((a, b) => b.score - a.score)[0] || null
 
-  const RED = '#8B1A1A', GOLD = '#C9A84C'
+  const RED = '#205FA6', GOLD = '#EC7F2A'
 
   // Khối breakdown danh sách phòng theo 1 chỉ số (task | debt)
   const RoomBreakdown = ({ metric }) => (
@@ -210,7 +210,7 @@ export default function DashboardPage() {
               <>
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-full flex-shrink-0 flex items-center justify-center text-white text-lg font-bold shadow-sm"
-                    style={{ background: 'linear-gradient(135deg,#8B1A1A,#C9A84C)' }}>
+                    style={{ background: 'linear-gradient(135deg,#205FA6,#EC7F2A)' }}>
                     {initial(bestStaff.full_name)}
                   </div>
                   <div className="min-w-0">

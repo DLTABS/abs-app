@@ -122,14 +122,14 @@ export default function ChecklistPage() {
             value={selYear + '-' + String(selMonth).padStart(2,'0')}
             onChange={e => { const p = e.target.value.split('-'); setSelYear(Number(p[0])); setSelMonth(Number(p[1])) }}
             className="px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 bg-white flex-shrink-0"
-            style={{ '--tw-ring-color': '#8B1A1A' }}>
+            style={{ '--tw-ring-color': '#205FA6' }}>
             {monthOpts.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </select>
         </div>
 
         {loading ? (
           <div className="flex justify-center py-20">
-            <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#8B1A1A', borderTopColor: 'transparent' }} />
+            <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: '#205FA6', borderTopColor: 'transparent' }} />
           </div>
         ) : !me?.room_id ? (
           <div className="bg-yellow-50 border border-yellow-200 rounded-2xl px-5 py-8 text-center">
@@ -193,7 +193,7 @@ export default function ChecklistPage() {
                           </div>
                           <div className="flex items-center gap-3 mt-1 flex-wrap">
                             <span className="text-xs text-gray-400">{client.tax_code}</span>
-                            <span className="text-xs font-medium" style={{ color: '#8B1A1A' }}>{fmt(client.monthly_fee)}đ/{client.fee_period === 'quarterly' ? 'quý' : 'tháng'}</span>
+                            <span className="text-xs font-medium" style={{ color: '#205FA6' }}>{fmt(client.monthly_fee)}đ/{client.fee_period === 'quarterly' ? 'quý' : 'tháng'}</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-3 flex-shrink-0 ml-3">

@@ -45,10 +45,10 @@ export default function AppShell({ children }) {
             <IconMenu />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-blue-600 rounded-md flex items-center justify-center">
-              <span className="text-white text-xs font-bold">S</span>
+            <div className="w-6 h-6 bg-[#205FA6] rounded-md flex items-center justify-center">
+              <span className="text-white text-xs font-bold">A</span>
             </div>
-            <span className="text-sm font-semibold text-gray-900">Savitax</span>
+            <span className="text-sm font-semibold text-gray-900">ABS</span>
           </div>
         </div>
 

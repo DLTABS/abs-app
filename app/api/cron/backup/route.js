@@ -109,9 +109,9 @@ export async function GET(request) {
       const resend = new Resend(process.env.RESEND_API_KEY)
       const rowsHtml = TABLES.map(t => '<li>' + t + ': ' + rowCounts[t] + ' dòng</li>').join('')
       await resend.emails.send({
-        from: 'Savitax Backup <onboarding@resend.dev>',
+        from: 'ABS Backup <onboarding@resend.dev>',
         to: 'nghgan@gmail.com',
-        subject: 'Backup Savitax — ' + dateStr(now) + ' (' + totalRows + ' dòng)',
+        subject: 'Backup ABS — ' + dateStr(now) + ' (' + totalRows + ' dòng)',
         html: '<p>Backup tự động hàng tuần đã hoàn tất.</p><ul>' + rowsHtml + '</ul>' +
           '<p>File: ' + fileName + ' — lưu tại Supabase Storage (bucket "' + BUCKET + '").</p>',
         attachments: [{ filename: fileName, content: jsonBuffer }],

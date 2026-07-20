@@ -38,7 +38,7 @@ export default function AdminChecklistPage() {
       let role = 'staff'
       const { data: me } = await supabase.from('staff').select('role').eq('id', sd.session.user.id).single()
       if (me && me.role) role = me.role
-      else { role = sd.session.user.email === 'admin@savitax.vn' ? 'admin' : 'staff' }
+      else { role = sd.session.user.email === 'admin@dailythueabs.vn' ? 'admin' : 'staff' }
       const allowed = await hasPermission(role, 'manage_checklist_template')
       if (!allowed) { router.push('/dashboard'); return }
       await load()

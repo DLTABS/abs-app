@@ -219,7 +219,7 @@ export default function AdminStaffPage() {
                   <label className="text-xs text-gray-500 mb-1 block">Email</label>
                   <input type="email" required value={form.email}
                     onChange={e => setForm(v => ({ ...v, email: e.target.value }))}
-                    placeholder="nv@savitax.vn"
+                    placeholder="nv@dailythueabs.vn"
                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div>
