@@ -13,7 +13,6 @@ const STATUS_COLOR = {
   transferred: 'bg-orange-100 text-orange-600',
 }
 const STATUS_OPTS = [
-  { v: 'pending', l: 'Trình ký (đang lên hợp đồng)' },
   { v: 'active', l: 'Đang sử dụng' },
   { v: 'inactive', l: 'Ngưng dịch vụ' },
   { v: 'transferred', l: 'Chuyển đi (sang đơn vị khác)' },
@@ -119,7 +118,7 @@ export default function ClientsPage() {
   const [expanded, setExpanded] = useState(null)
   const [feeHistory, setFeeHistory] = useState({})
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ name: '', tax_code: '', report_type: 'monthly', fee_period: 'monthly', monthly_fee: '', fee_start: '', other_debt: '', assigned_to: '', address: '', tax_status: '', client_code: '', representative: '', status: 'pending', contract_start: '' })
+  const [form, setForm] = useState({ name: '', tax_code: '', report_type: 'monthly', fee_period: 'monthly', monthly_fee: '', fee_start: '', other_debt: '', assigned_to: '', address: '', tax_status: '', client_code: '', representative: '', status: 'active', contract_start: '' })
   const [editClientId, setEditClientId] = useState(null)
   const [editClientForm, setEditClientForm] = useState({})
   const [formRoom, setFormRoom] = useState('')
@@ -352,7 +351,7 @@ export default function ClientsPage() {
       setSaving(false)
       return
     }
-    setForm({ name: '', tax_code: '', report_type: 'monthly', fee_period: 'monthly', monthly_fee: '', fee_start: '', other_debt: '', assigned_to: '', address: '', tax_status: '', client_code: '', representative: '', status: 'pending', contract_start: '' })
+    setForm({ name: '', tax_code: '', report_type: 'monthly', fee_period: 'monthly', monthly_fee: '', fee_start: '', other_debt: '', assigned_to: '', address: '', tax_status: '', client_code: '', representative: '', status: 'active', contract_start: '' })
     setLookupError('')
     setFormRoom('')
     setShowForm(false)
@@ -705,28 +704,6 @@ export default function ClientsPage() {
                   placeholder="VD: KH001, AORAKI-01..."
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
-              {/* Trạng thái + Ngày bắt đầu hợp đồng */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">Trạng thái</label>
-                  <select value={form.status}
-                    onChange={e => setForm(f => ({ ...f, status: e.target.value }))}
-                    className={'w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ' + (form.status === 'pending' ? 'border-amber-300 bg-amber-50' : 'border-gray-200')}>
-                    <option value="pending">Trình ký (đang lên hợp đồng)</option>
-                    <option value="active">Đang sử dụng</option>
-                  </select>
-                  {form.status === 'pending' && (
-                    <p className="text-xs text-amber-600 mt-1">Chưa tính tỉ lệ công việc/công nợ cho đến khi chuyển "Đang sử dụng".</p>
-                  )}
-                </div>
-                <div>
-                  <label className="text-xs text-gray-500 mb-1 block">Ngày bắt đầu hợp đồng</label>
-                  <input type="date" value={form.contract_start}
-                    onChange={e => setForm(f => ({ ...f, contract_start: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                  <p className="text-xs text-gray-400 mt-1">Dùng cho hợp đồng + mốc bắt đầu tính tỉ lệ.</p>
-                </div>
-              </div>
               {/* 6. Phòng ban phụ trách */}
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">Phòng ban phụ trách</label>
@@ -771,7 +748,6 @@ export default function ClientsPage() {
         {/* Filter tabs */}
         <div className="flex gap-1 mb-3 bg-gray-100 p-1 rounded-xl overflow-x-auto">
           {[
-            ['pending',     'Trình ký (' + counts.pending + ')'],
             ['active',      'Đang sử dụng (' + counts.active + ')'],
             ['inactive',    'Ngưng dịch vụ (' + counts.inactive + ')'],
             ['transferred', 'Chuyển đi (' + counts.transferred + ')'],
@@ -1147,24 +1123,6 @@ export default function ClientsPage() {
                             Thay đổi
                           </button>
                         </div>
-                      )}
-                    </div>
-
-                    {/* Hợp đồng dịch vụ */}
-                    <div>
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Hợp đồng dịch vụ</p>
-                      <div className="flex gap-2 flex-wrap">
-                        <button onClick={() => window.open('/api/admin/contract?clientId=' + client.id + '&format=pdf', '_blank')}
-                          className="text-xs px-3 py-1.5 bg-red-50 text-red-700 border border-red-200 rounded-lg hover:bg-red-100 font-medium transition-colors">
-                          📄 Xuất PDF
-                        </button>
-                        <button onClick={() => window.open('/api/admin/contract?clientId=' + client.id + '&format=word', '_blank')}
-                          className="text-xs px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 font-medium transition-colors">
-                          📝 Tải Word
-                        </button>
-                      </div>
-                      {!client.contract_start && (
-                        <p className="text-xs text-amber-500 mt-1">Chưa có "Ngày bắt đầu hợp đồng" — hãy sửa thông tin để hợp đồng hiển thị đúng thời hạn.</p>
                       )}
                     </div>
 
