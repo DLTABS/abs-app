@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js'
-import { Resend } from 'resend'
 
 export const maxDuration = 60
 
@@ -40,8 +39,8 @@ async function fetchAllRows(supabase, table) {
 
 // GET /api/cron/backup — chạy hàng tuần qua Vercel Cron (xem vercel.json), có thể gọi tay để
 // test (kèm header Authorization: Bearer $CRON_SECRET). Đọc toàn bộ bảng nghiệp vụ, gộp thành
-// 1 file JSON, lưu vào Supabase Storage (bucket "db-backups"), xoá bản backup quá 8 tuần, và
-// gửi email tóm tắt qua Resend — để phục hồi thủ công nếu có sự cố (chưa có restore tự động).
+// 1 file JSON, lưu vào Supabase Storage (bucket "db-backups"), xoá bản backup quá 8 tuần —
+// để phục hồi thủ công nếu có sự cố (chưa có restore tự động).
 export async function GET(request) {
   const auth = request.headers.get('authorization')
   if (auth !== 'Bearer ' + process.env.CRON_SECRET) {
@@ -101,28 +100,6 @@ export async function GET(request) {
     cleanupError = e.message
   }
 
-  // 4. Gửi email tóm tắt qua Resend — lỗi ở bước này không coi là thất bại toàn bộ (file backup
-  // đã lưu an toàn ở Storage dù email gửi thất bại)
-  let emailError = null
-  if (process.env.RESEND_API_KEY) {
-    try {
-      const resend = new Resend(process.env.RESEND_API_KEY)
-      const rowsHtml = TABLES.map(t => '<li>' + t + ': ' + rowCounts[t] + ' dòng</li>').join('')
-      await resend.emails.send({
-        from: 'ABS Backup <onboarding@resend.dev>',
-        to: 'nghgan@gmail.com',
-        subject: 'Backup ABS — ' + dateStr(now) + ' (' + totalRows + ' dòng)',
-        html: '<p>Backup tự động hàng tuần đã hoàn tất.</p><ul>' + rowsHtml + '</ul>' +
-          '<p>File: ' + fileName + ' — lưu tại Supabase Storage (bucket "' + BUCKET + '").</p>',
-        attachments: [{ filename: fileName, content: jsonBuffer }],
-      })
-    } catch (e) {
-      emailError = e.message
-    }
-  } else {
-    emailError = 'Chưa cấu hình RESEND_API_KEY — bỏ qua gửi email.'
-  }
-
   return Response.json({
     ok: true,
     fileName,
@@ -130,6 +107,5 @@ export async function GET(request) {
     rowCounts,
     deletedFiles,
     cleanupError,
-    emailError,
   })
 }
