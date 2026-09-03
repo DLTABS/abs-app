@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import AppShell from '@/components/AppShell'
 import NotificationBell from '@/components/NotificationBell'
+import { loadPermissionData, can } from '@/lib/permissions'
 
 const pctColor = (v) => v >= 90 ? 'text-green-600' : v >= 70 ? 'text-yellow-600' : 'text-red-500'
 const barColor = (v) => v >= 90 ? 'bg-green-500' : v >= 70 ? 'bg-yellow-400' : 'bg-red-400'
@@ -49,6 +50,7 @@ export default function DashboardPage() {
   const [rooms, setRooms] = useState([])
   const [staff, setStaff] = useState([])
   const [company, setCompany] = useState({ avg_task_pct: 0, avg_debt_pct: 0 })
+  const [permData, setPermData] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const now = new Date()
@@ -61,10 +63,16 @@ export default function DashboardPage() {
       const { data: sessionData } = await supabase.auth.getSession()
       if (!sessionData.session) { router.push('/login'); return }
 
-      const kpi = await fetch(`/api/admin/kpi-overview?year=${year}&month=${month}&_t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json())
+      // Tải kèm bảng quyền để biết vai trò nào là cấp quản lý (xem bestStaff bên dưới) — phải có
+      // TRƯỚC khi bỏ cờ loading, nếu không lần render đầu sẽ xếp hạng nhầm cả trưởng phòng.
+      const [kpi, pd] = await Promise.all([
+        fetch(`/api/admin/kpi-overview?year=${year}&month=${month}&_t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json()),
+        loadPermissionData(),
+      ])
       setRooms(kpi.rooms || [])
       setStaff(kpi.staff || [])
       setCompany(kpi.company || { avg_task_pct: 0, avg_debt_pct: 0 })
+      setPermData(pd)
       setLoading(false)
     }
     load()
@@ -90,11 +98,17 @@ export default function DashboardPage() {
     .map(r => ({ ...r, score: score(r.avg_task_pct, r.avg_debt_pct) }))
     .sort((a, b) => b.score - a.score)[0] || null
 
-  // Hạng 1: nhân viên (có phụ trách công ty) điểm tổng hợp cao nhất — chỉ xét vai trò "nhân viên",
-  // không tính trưởng phòng/quản trị vào bảng xếp hạng này. Cũng loại nhân viên thuộc phòng
-  // "Remote" — chỉ xét nhân viên phòng văn phòng (room_type='main').
+  // Hạng 1: nhân viên (có phụ trách công ty) điểm tổng hợp cao nhất — không tính cấp quản lý
+  // (quản trị viên, trưởng phòng/kế toán trưởng) vì họ thường phụ trách ít công ty nên dễ đạt
+  // %-KPI cao bất thường, lấn ô của nhân viên làm nhiều.
+  //
+  // Nhận diện "cấp quản lý" bằng QUYỀN `manage_staff` chứ KHÔNG so mã vai trò cứng: mỗi đơn vị
+  // tự đặt tên vai trò riêng (ABS dùng ke_toan_truong/ke_toan_vien, không có mã 'staff' như bản
+  // gốc) — so mã cứng sẽ khiến không ai lọt vào danh sách và ô này trống vĩnh viễn.
+  // Cũng loại nhân viên thuộc phòng "Remote" — chỉ xét nhân viên phòng văn phòng.
   const remoteRoomIds = new Set(rooms.filter(r => r.room_type === 'remote').map(r => r.room_id))
-  const rankableStaff = staff.filter(s => s.client_count > 0 && s.role === 'staff' && !remoteRoomIds.has(s.room_id))
+  const rankableStaff = staff.filter(s =>
+    s.client_count > 0 && !can(s.role, 'manage_staff', permData) && !remoteRoomIds.has(s.room_id))
   const bestStaff = rankableStaff
     .map(s => ({ ...s, score: score(s.task_pct, s.debt_pct) }))
     .sort((a, b) => b.score - a.score)[0] || null
