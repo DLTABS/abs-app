@@ -3,8 +3,12 @@
 Web app quản lý nội bộ cho đại lý thuế ABS: quản lý khách hàng, checklist công việc hàng
 tháng/quý, công nợ dịch vụ, KPI nhân viên/phòng ban, phân quyền theo vai trò. Nhân bản từ
 `app.savitax.vn` (2026-07) — cùng codebase/nghiệp vụ, hạ tầng (GitHub/Supabase/Vercel/domain)
-và dữ liệu hoàn toàn tách biệt, không chia sẻ gì với Savitax. Xem `docs/clone-app-checklist.md`
-(nếu còn giữ lại) để biết lịch sử quá trình nhân bản.
+và dữ liệu hoàn toàn tách biệt, không chia sẻ gì với Savitax.
+
+📕 **`docs/clone-app-checklist.md`** — checklist đầy đủ để nhân bản app này cho đơn vị tiếp theo,
+kèm 15 bẫy đã dính thật khi dựng ABS (thiếu UNIQUE constraint, hard-code mã vai trò, **số tài
+khoản ngân hàng trong QR của ĐNTT**, file Word mẫu chứa text cứng...) và quy trình đồng bộ fix từ
+app gốc về sau. **Đọc file này trước khi nhân bản hoặc trước khi cherry-pick từ savitax-app.**
 
 - **Production**: https://app.dailythueabs.vn (deploy qua Vercel, region Singapore `sin1`)
 - **Repo**: https://github.com/DLTABS/abs-app (nhánh `main`, push là tự deploy)
