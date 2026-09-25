@@ -37,7 +37,8 @@ export default function AdminStaffPage() {
   const [resetId, setResetId]     = useState(null)
   const [resetPass, setResetPass] = useState('')
   const [resetSaving, setResetSaving] = useState(false)
-  const [resetMsg, setResetMsg]   = useState({}) // staffId -> message
+  const [resetMsg, setResetMsg]   = useState({}) // staffId -> thông báo lỗi
+  const [resetOk, setResetOk]     = useState({}) // staffId -> thông báo thành công (hiện lại sau khi đóng ô nhập)
   const [roleOpts, setRoleOpts]   = useState([]) // [{v, l}] tải động từ bảng roles
 
   const isAdmin = myRole === 'admin'
@@ -183,8 +184,13 @@ export default function AdminStaffPage() {
       body: JSON.stringify({ staffId, newPassword: resetPass }),
     })
     const json = await res.json()
-    setResetMsg(m => ({ ...m, [staffId]: json.error || 'Đã đặt lại mật khẩu thành công!' }))
-    if (!json.error) { setResetId(null); setResetPass('') }
+    if (json.error) {
+      setResetMsg(m => ({ ...m, [staffId]: json.error }))
+    } else {
+      setResetMsg(m => ({ ...m, [staffId]: '' }))
+      setResetOk(m => ({ ...m, [staffId]: json.message || 'Đã đặt lại mật khẩu thành công!' }))
+      setResetId(null); setResetPass('')
+    }
     setResetSaving(false)
   }
 
@@ -445,7 +451,7 @@ export default function AdminStaffPage() {
                             </button>
                             {isAdmin && (
                               <button
-                                onClick={() => { setResetId(s.id); setResetPass(''); setResetMsg(m => ({ ...m, [s.id]: '' })) }}
+                                onClick={() => { setResetId(s.id); setResetPass(''); setResetMsg(m => ({ ...m, [s.id]: '' })); setResetOk(m => ({ ...m, [s.id]: '' })) }}
                                 className="text-xs text-gray-500 hover:text-amber-600 px-2 py-1 rounded hover:bg-amber-50 transition-colors"
                               >
                                 Đặt lại MK
@@ -481,10 +487,19 @@ export default function AdminStaffPage() {
                               Hủy
                             </button>
                             {resetMsg[s.id] && (
-                              <span className={'text-xs font-medium ' + (resetMsg[s.id].includes('thành công') ? 'text-green-600' : 'text-red-500')}>
-                                {resetMsg[s.id]}
-                              </span>
+                              <span className="text-xs font-medium text-red-500">{resetMsg[s.id]}</span>
                             )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    {resetId !== s.id && resetOk[s.id] && (
+                      <tr className="bg-green-50/60">
+                        <td colSpan={7} className="px-4 py-2">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-medium text-green-700">✓ {resetOk[s.id]}</span>
+                            <button onClick={() => setResetOk(m => ({ ...m, [s.id]: '' }))}
+                              className="text-xs text-gray-400 hover:text-gray-600">Ẩn</button>
                           </div>
                         </td>
                       </tr>
