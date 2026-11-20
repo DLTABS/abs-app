@@ -5,9 +5,10 @@ tháng/quý, công nợ dịch vụ, KPI nhân viên/phòng ban, phân quyền t
 `app.savitax.vn` (2026-07) — cùng codebase/nghiệp vụ, hạ tầng (GitHub/Supabase/Vercel/domain)
 và dữ liệu hoàn toàn tách biệt, không chia sẻ gì với Savitax.
 
-📘 **`docs/handover-abs.md`** — tài liệu bàn giao: hướng dẫn vận hành cho người dùng/quản trị ABS
-+ hạ tầng, biến môi trường, migration, backup & khôi phục, sự cố thường gặp cho người tiếp quản
-code, kèm việc còn treo và checklist chuyển quyền sở hữu.
+📘 **`BAN-GIAO.md`** — tài liệu bàn giao: hướng dẫn vận hành cho người dùng/quản trị ABS + hạ
+tầng, biến môi trường, dựng máy mới, migration, backup & khôi phục, sự cố thường gặp, quy tắc an
+toàn cho người tiếp quản code, kèm việc còn treo và checklist chuyển quyền sở hữu. Gói bàn giao
+(2 file zip: mã nguồn + bí mật) tạo bằng `scripts/dong-goi-ban-giao.ps1`.
 
 📕 **`docs/clone-app-checklist.md`** — checklist đầy đủ để nhân bản app này cho đơn vị tiếp theo,
 kèm 15 bẫy đã dính thật khi dựng ABS (thiếu UNIQUE constraint, hard-code mã vai trò, **số tài

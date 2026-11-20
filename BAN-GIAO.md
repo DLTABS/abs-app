@@ -6,8 +6,30 @@
 > checklist chuyển quyền sở hữu).
 >
 > Tài liệu liên quan trong repo:
+> - `README.md` — tóm tắt, cách chạy, cách triển khai lần đầu.
 > - `AGENTS.md` — quy ước nghiệp vụ & code, đọc trước khi sửa code.
 > - `docs/clone-app-checklist.md` — cách nhân bản app này cho đơn vị khác + 15 bẫy đã dính thật.
+
+---
+
+## Gói bàn giao
+
+Tạo bằng script sẵn có (chạy trên máy đang giữ app):
+
+```
+powershell -ExecutionPolicy Bypass -File scripts\dong-goi-ban-giao.ps1
+```
+
+Ra **2 file zip** ở thư mục cha của folder app (mặc định `D:\`):
+
+1. **`abs-app-ma-nguon-<ngày>.zip`** — mã nguồn + lịch sử git (để tiếp tục `git push`).
+   Không có `node_modules`/`.next` (cài lại bằng `npm ci`), **không có khoá** → chuyển qua kênh
+   nào cũng được. Script tự soát lại, lẫn khoá là hủy gói và báo lỗi.
+2. **`abs-app-BI-MAT-<ngày>.zip`** — `.env.local` (khoá Supabase toàn quyền + `CRON_SECRET`) kèm
+   `DOC-KY.txt` hướng dẫn. **Chỉ chuyển bằng USB / trao tay**, không gửi email, Zalo, chat.
+   Chép xong thì xóa file zip khỏi máy trung gian.
+
+Script cũng cảnh báo nếu còn thay đổi chưa commit hoặc commit chưa push.
 
 ---
 
@@ -191,15 +213,30 @@ Environment Variables (production). Đổi giá trị trên Vercel **phải rede
 **Giá trị thật của các khóa này không ghi trong repo** và không nằm trong tài liệu này — lấy
 từ Supabase Dashboard hoặc từ Vercel env vars.
 
-## B3. Chạy local
+## B3. Dựng máy mới & chạy local
 
-```bash
-npm install
-npm run dev -- --port 3002      # hoặc dùng cấu hình "abs-dev" trong .claude/launch.json
-```
+**Dựng máy của người tiếp quản (làm một lần):**
 
-Cần `.env.local` với 3 biến Supabase ở trên. Nếu dev server bỗng trả 404 cho API route đang có
-thật → xóa thư mục `.next` rồi chạy lại (cache Turbopack hỏng, đã gặp).
+1. Cài **Node.js LTS** bản 20.9 trở lên (khuyên 22 hoặc 24): https://nodejs.org
+2. Cài **Git for Windows**: https://git-scm.com/download/win (để mặc định, có Git Credential
+   Manager).
+3. Giải nén gói mã nguồn, ví dụ ra `D:\abs-app`.
+4. Từ gói bí mật: chép `.env.local` vào `D:\abs-app\` (cạnh `package.json`).
+5. Mở PowerShell tại `D:\abs-app`:
+   ```bash
+   npm ci
+   npm run dev -- --port 3002
+   ```
+   Mở http://localhost:3002 và đăng nhập thử. Chạy trên máy sẽ chậm hơn bản online vì mỗi lượt
+   đọc dữ liệu phải đi sang Singapore — bình thường.
+6. Lần đầu `git push`, Windows bật cửa sổ đăng nhập GitHub → đăng nhập bằng tài khoản có quyền
+   ghi repo `DLTABS/abs-app`.
+
+**Hằng ngày:** sửa code → `npm run build` (kiểm tra sạch) → `git commit` → `git push`. Có thể
+dùng cấu hình `abs-dev` trong `.claude/launch.json` thay cho lệnh `npm run dev` dài.
+
+Nếu dev server bỗng trả 404 cho API route đang có thật → xóa thư mục `.next` rồi chạy lại (cache
+Turbopack hỏng, đã gặp).
 
 ## B4. Deploy
 
@@ -303,7 +340,24 @@ Muốn về đúng trạng thái đó thì phải xóa tay phần phát sinh sau
 | Báo cáo/KPI thiếu dữ liệu khi data tăng | PostgREST cắt ở 1000 dòng | Chuyển query đó sang `fetchAllRows()` |
 | Dev server trả 404 cho API đang có | Cache `.next` hỏng | Xóa `.next`, chạy lại |
 
-## B9. Đồng bộ fix từ app gốc savitax-app
+## B9. Quy tắc an toàn
+
+- **Không bao giờ commit `.env.local`**, không dán khóa vào chat / email / tài liệu.
+  `SUPABASE_SERVICE_ROLE_KEY` = toàn quyền dữ liệu, bỏ qua mọi phân quyền trong app.
+- Hai bucket `client-files` và `db-backups` phải để **private**. Bật "Public bucket" là ai có
+  đường dẫn file cũng tải được mà không cần đăng nhập — app đã tải file bằng đường dẫn ký tạm nên
+  không cần bật.
+- **Không tắt** việc gate theo quyền ở trang/API mới, và không viết cứng mã vai trò (mục B5).
+- Dữ liệu trên app là **dữ liệu production thật**. Khi cần thử nghiệm (tạo nhân viên, ghi công
+  nợ...), dùng bản ghi tạm rồi **xóa sạch ngay** sau khi xác nhận.
+- Supabase gói Free **tự tạm dừng sau ~7 ngày không ai truy cập** (dữ liệu không mất, bấm Resume).
+  Nghỉ dài ngày thì nhớ điều này, hoặc nâng gói Pro.
+- Vercel gói Hobby theo điều khoản chỉ dành cho mục đích cá nhân — dùng chính thức cho công ty
+  thì nên nâng Pro.
+- Nếu nghi khóa bị lộ: Supabase → Project Settings → API Keys tạo lại khóa, cập nhật `.env.local`
+  + biến môi trường trên Vercel rồi **Redeploy**.
+
+## B10. Đồng bộ fix từ app gốc savitax-app
 
 `abs-app` tách ra từ `savitax-app` ngày 2026-07-08 và **không tự đồng bộ** sau đó. Từ 2026-08
 Savitax đã rẽ nhánh lớn (thêm module HCNS, tính năng "Kiêm nhiệm", đổi công thức %-công nợ) —
@@ -368,5 +422,19 @@ không tự vận hành được:
 - [ ] **`CRON_SECRET`**: sinh chuỗi mới, cập nhật trên Vercel rồi redeploy (chuỗi cũ coi như đã
       lộ sau khi bàn giao).
 
-Tài liệu cần đọc, theo thứ tự: `docs/handover-abs.md` (file này) → `AGENTS.md` →
+Tài liệu cần đọc, theo thứ tự: `BAN-GIAO.md` (file này) → `README.md` → `AGENTS.md` →
 `docs/clone-app-checklist.md`.
+
+## C4. Dọn máy cũ sau khi bàn giao
+
+Khi muốn cắt hẳn quyền truy cập của máy đang giữ app hiện nay:
+
+1. Xóa folder `D:\abs-app` (gồm `.env.local`).
+2. Xóa 2 file zip bàn giao đã tạo.
+3. Gỡ đăng nhập GitHub: Control Panel → **Credential Manager** → Windows Credentials → xóa mục
+   `git:https://github.com` của tài khoản dùng cho repo này (giữ nguyên mục của tài khoản GitHub
+   khác nếu máy còn dùng).
+4. Đăng xuất khỏi GitHub, Vercel, Supabase trên trình duyệt của máy đó.
+5. Đổi mật khẩu tài khoản GitHub/Vercel/Supabase, và nếu muốn chắc tuyệt đối thì xoay khóa: tạo
+   lại khóa API trong Supabase → Project Settings → API Keys (khóa anon và service_role đổi theo),
+   cập nhật Vercel + `.env.local` rồi Redeploy. Sinh `CRON_SECRET` mới cùng lúc.
