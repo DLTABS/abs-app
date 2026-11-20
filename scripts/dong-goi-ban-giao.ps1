@@ -1,4 +1,4 @@
-# Đóng gói app Đại lý thuế ABS để mang sang máy khác / bàn giao. Tạo HAI file zip:
+﻿# Đóng gói app Đại lý thuế ABS để mang sang máy khác / bàn giao. Tạo HAI file zip:
 #   1. <tên-folder>-ma-nguon-<ngày>.zip : toàn bộ mã nguồn + lịch sử git (.git) để tiếp tục push.
 #      KHÔNG có node_modules / .next (cài lại bằng `npm ci`), KHÔNG có khoá.
 #   2. <tên-folder>-BI-MAT-<ngày>.zip   : .env.local (khoá Supabase + CRON_SECRET).
