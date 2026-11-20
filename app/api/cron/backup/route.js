@@ -8,11 +8,11 @@ function getAdmin() {
 
 const BUCKET = 'db-backups'
 const RETENTION_WEEKS = 8
-// Lưu ý: 'fee_collections' được code (app/clients/page.js) tham chiếu nhưng KHÔNG tồn tại thật
-// trong database (bảng chưa từng được migrate) — đã loại khỏi danh sách backup để tránh lỗi.
+// Chỉ liệt kê BẢNG thật, không liệt kê view (*_readable) vì view chỉ đọc lại từ bảng gốc.
+// 'debt_records' là bảng tồn dư của lần migrate đầu (rỗng, không còn code nghiệp vụ nào dùng).
 const TABLES = [
   'clients', 'staff', 'rooms', 'roles', 'permissions', 'role_permissions',
-  'service_fees', 'task_definitions', 'task_records',
+  'service_fees', 'fee_collections', 'task_definitions', 'task_records',
   'client_secondary_staff', 'client_change_log', 'client_credentials', 'debt_rollovers',
 ]
 
