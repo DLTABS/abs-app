@@ -79,9 +79,20 @@ Hệ thống đang có 3 vai trò (sửa tại **Vai trò & phân quyền**):
 | `manage_roles` | Quản lý vai trò & phân quyền | — | — |
 | `manage_database` | Cài đặt Database | — | — |
 | `view_all_debt` | Xem công nợ toàn công ty | — | — |
+| `view_tax_filings` | Xem tờ khai, thông báo, lịch hạn nộp của công ty mình phụ trách | ✅ | ✅ |
+| `manage_tax_account` | Nhập / cập nhật tài khoản cổng thuế của công ty | ✅ | ✅ |
+| `sync_tax_filings` | Chạy đồng bộ tờ khai từ cổng thuế | ✅ | ✅ |
+| `bulk_download_tax` | Tải tờ khai hàng loạt nhiều công ty | ✅ | ✅ |
+| `reveal_credentials` | **XEM CHUỖI mật khẩu của khách** (thuế, hóa đơn, CKS, ngân hàng, BHXH) | ✅ | ✅ |
+| `manage_tax_catalog` | Cấu hình danh mục tờ khai, kỳ khai, ngày lễ | ✅ | — |
+| `xem_phi_de_xuat` | Xem phí đang thu và phí đề xuất ở màn Tăng trưởng & phí | ✅ | — |
 
 Thay đổi phân quyền: **Vai trò & phân quyền** → tick/bỏ tick → lưu. Có hiệu lực ngay khi
 người đó tải lại trang (quyền được nhớ tạm trong trình duyệt).
+
+⚠️ `reveal_credentials` đang bật cho **cả kế toán viên** (giữ nguyên cách bản gốc gán). Ai bị bỏ
+tick thì chỉ thấy dấu chấm và máy chủ **không gửi** chuỗi mật khẩu về trình duyệt nữa. Anh cân
+nhắc có nên thu hẹp quyền này không.
 
 **Nhân viên chính và nhân viên phụ của một công ty:**
 - **Nhân viên chính** (1 người): toàn quyền trên công ty đó, **doanh thu tính cho người này
@@ -98,11 +109,14 @@ Mọi người đều thấy:
 | 🏢 Danh sách công ty | Danh sách khách hàng mình phụ trách, mở ra xem/sửa chi tiết, đính kèm file |
 | 📋 Checklist công việc | Tick việc đã làm theo từng công ty, từng tháng |
 | 💰 Quản lý công nợ | Phí dịch vụ phải thu / đã thu của công ty mình phụ trách, xuất phiếu ĐNTT |
+| 🔎 Soát xét báo cáo | Soát bộ báo cáo thuế đã làm, tăng trưởng & phí — đọc thư mục hồ sơ trên máy |
+| ⚖️ Rủi ro thuế | Chấm 39 tiêu chí rủi ro từ chính bộ hồ sơ đó |
 
 Thêm cho người có quyền tương ứng:
 
 | Trang | Cần quyền |
 |---|---|
+| 🧾 Tờ khai & Hạn nộp | `view_tax_filings` |
 | 📔 Nhật ký làm việc | `manage_staff` / `manage_clients` / `view_all_rooms` |
 | 📊 Báo cáo KPI | `view_kpi_report` |
 | 👥 Nhân viên ABS | `manage_staff` |
@@ -208,6 +222,8 @@ Environment Variables (production). Đổi giá trị trên Vercel **phải rede
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Khóa công khai, chỉ để kiểm tra phiên đăng nhập ở trình duyệt | Supabase → Settings → API |
 | `SUPABASE_SERVICE_ROLE_KEY` | Khóa **bí mật**, mọi đọc/ghi nghiệp vụ phía server | Supabase → Settings → API |
 | `CRON_SECRET` | Chuỗi bí mật bảo vệ `/api/cron/backup` | tự sinh, phải khớp giữa Vercel và lúc gọi tay |
+| `TAX_ENC_KEY` | **Khóa mã hóa mật khẩu tài khoản thuế của khách** (phân hệ Tờ khai) | sinh bằng `node scripts/xoay-tax-enc-key.mjs --sinh-khoa`, bản gốc cất ở `%USERPROFILE%\.abs-keys\` |
+| `NEXT_PUBLIC_TOKHAI_EXT_ID` | Mã tiện ích Chrome "ABS — Cầu nối cổng thuế" | suy từ khóa công khai trong `chrome-extension/manifest.json` |
 | `SUPABASE_DB_URL` | Chuỗi kết nối Postgres trực tiếp | Supabase → Settings → Database (**không dùng được từ máy dev vì project chỉ có IPv6**) |
 
 **Giá trị thật của các khóa này không ghi trong repo** và không nằm trong tài liệu này — lấy
@@ -329,7 +345,38 @@ Muốn về đúng trạng thái đó thì phải xóa tay phần phát sinh sau
 | File đính kèm công ty (bucket `client-files`) | Không có bản sao — cân nhắc bật backup Storage nếu dữ liệu này quan trọng |
 | Cấu trúc bảng, RLS, constraint, trigger | Dựng lại bằng các file trong `sql/` theo thứ tự ở mục B6 |
 
-## B8. Sự cố thường gặp
+## B8. Ba phân hệ Tờ khai / Soát xét báo cáo / Rủi ro thuế
+
+Mang từ bản `app-anhieuminh` sang ngày 25/11/2026 (bản clone đó đã gỡ sạch module HCNS nên an
+toàn hơn lấy thẳng từ `savitax-app`). Phần **"Kiêm nhiệm"** đã được gỡ: 6 chỗ soi mã vai trò
+cứng `'leader'` thay bằng kiểm tra **quyền** `view_all_rooms` qua `coQuyen()` trong
+`lib/serverAuth.js`.
+
+| Phân hệ | Code | Dữ liệu |
+|---|---|---|
+| Tờ khai & Hạn nộp | `app/tokhai`, `app/api/admin/tokhai`, `lib/tokhai*.js` | 9 bảng `tax_*` trong Supabase |
+| Soát xét báo cáo | `app/soatbaocao`, `lib/phanTich`, `lib/soatbaocao`, `app/api/admin/phantich` | **đọc thư mục hồ sơ trên máy nhân viên**, không lưu DB |
+| Rủi ro thuế | `app/ruirothue`, `lib/ruiro` | như trên, dùng chung thư mục đã trỏ ở Tờ khai |
+
+**Cần có để chạy thật:**
+1. SQL `sql/15_tokhai_module.sql` → `16_tokhai_seed.sql` → `22_tokhai_hkd.sql` →
+   `40_phantich_xem_phi.sql` (đã chạy 25/11/2026).
+2. Hai biến môi trường `TAX_ENC_KEY`, `NEXT_PUBLIC_TOKHAI_EXT_ID` trên Vercel (mục B2) — đổi
+   xong phải **Redeploy**, vì `NEXT_PUBLIC_*` chỉ được nhúng lúc build.
+3. Cài tiện ích Chrome trên máy nhân viên làm tờ khai: `chrome-extension/CAI-DAT.md`. Tiện ích
+   của ABS dùng **khóa riêng** (`%USERPROFILE%\.abs-keys\tokhai-extension-private.pem`) — đừng
+   dùng chung khóa với app của đơn vị khác, trùng mã là không cài song song được.
+4. Sinh lịch hạn nộp cho các công ty: `node scripts/seed-tax-obligations.mjs`.
+
+⚠️ Soát xét báo cáo và Rủi ro thuế đọc hồ sơ theo **quy ước cây thư mục** ở
+`docs/quy-uoc-luu-ho-so.md` (mang nguyên từ An Hiểu Minh). ABS lưu hồ sơ khác cây này thì phải
+sửa quy ước cho khớp, không thì app không tìm thấy file. Hướng dẫn dùng:
+`docs/huong-dan-phan-he-to-khai.md`, `docs/huong-dan-ho-so-soat-ky.md`.
+
+Script kiểm tra sẵn có: `scripts/verify-tokhai-schema.mjs` (schema đủ chưa),
+`scripts/test-tokhai-*.mjs`, `scripts/test-tax-*.mjs` (logic thuần, không đụng dữ liệu).
+
+## B9. Sự cố thường gặp
 
 | Hiện tượng | Nguyên nhân thật | Cách xử lý |
 |---|---|---|
@@ -340,7 +387,7 @@ Muốn về đúng trạng thái đó thì phải xóa tay phần phát sinh sau
 | Báo cáo/KPI thiếu dữ liệu khi data tăng | PostgREST cắt ở 1000 dòng | Chuyển query đó sang `fetchAllRows()` |
 | Dev server trả 404 cho API đang có | Cache `.next` hỏng | Xóa `.next`, chạy lại |
 
-## B9. Quy tắc an toàn
+## B10. Quy tắc an toàn
 
 - **Không bao giờ commit `.env.local`**, không dán khóa vào chat / email / tài liệu.
   `SUPABASE_SERVICE_ROLE_KEY` = toàn quyền dữ liệu, bỏ qua mọi phân quyền trong app.
@@ -357,7 +404,7 @@ Muốn về đúng trạng thái đó thì phải xóa tay phần phát sinh sau
 - Nếu nghi khóa bị lộ: Supabase → Project Settings → API Keys tạo lại khóa, cập nhật `.env.local`
   + biến môi trường trên Vercel rồi **Redeploy**.
 
-## B10. Đồng bộ fix từ app gốc savitax-app
+## B11. Đồng bộ fix từ app gốc savitax-app
 
 `abs-app` tách ra từ `savitax-app` ngày 2026-07-08 và **không tự đồng bộ** sau đó. Từ 2026-08
 Savitax đã rẽ nhánh lớn (thêm module HCNS, tính năng "Kiêm nhiệm", đổi công thức %-công nợ) —
@@ -405,6 +452,11 @@ trước và đường ghi.
 | 4 | Thu hồi (revoke) các **GitHub PAT token tạm** đã dùng để push | Bảo mật | GitHub → Settings → Developer settings → Personal access tokens |
 | 5 | Cân nhắc nâng **Supabase lên gói Pro** | Cân nhắc | Hết hiện tượng tự pause (mục B1), có backup cấp database của Supabase |
 | 6 | Sửa credential Git của remote `origin` cho người tiếp quản | Thấp | Máy dev cũ từng phải push qua remote tạm có token |
+| 7 | **Sinh lịch hạn nộp** cho các công ty: `node scripts/seed-tax-obligations.mjs` | Cần làm | Chưa chạy → trang Tờ khai còn trống. Ghi hàng nghìn dòng vào `tax_obligations`, nên chạy thử một công ty trước |
+| 8 | **Cài tiện ích Chrome** trên máy nhân viên làm tờ khai | Cần làm | `chrome-extension/CAI-DAT.md`. Chưa cài thì không nối được cổng thuế |
+| 9 | Đối chiếu **quy ước cây thư mục hồ sơ** của ABS với `docs/quy-uoc-luu-ho-so.md` | Cần làm | Khác cây là Soát xét báo cáo / Rủi ro thuế không tìm thấy file |
+| 10 | Cất một bản **`TAX_ENC_KEY`** ở trình quản lý mật khẩu của công ty | Bảo mật | Mất khóa là mất hết mật khẩu thuế của khách đã lưu |
+| 11 | Cân nhắc thu hẹp quyền **`reveal_credentials`** (đang bật cho cả kế toán viên) | Cân nhắc | Xem ghi chú ở mục A2 |
 
 ## C3. Checklist chuyển quyền sở hữu
 

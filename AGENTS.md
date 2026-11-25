@@ -47,6 +47,14 @@ app gốc về sau. **Đọc file này trước khi nhân bản hoặc trước 
 - Ngày hạn công việc (`deadline_day`) phải clamp về số ngày thực của tháng (VD ngày 30 ở tháng
   2 → ngày 28/29) và task chỉ "Quá hạn" sau khi qua HẾT ngày hạn (0h ngày kế), không phải ngay
   khi vừa tới ngày hạn.
+- 3 phân hệ **Tờ khai & Hạn nộp / Soát xét báo cáo / Rủi ro thuế** mang từ `app-anhieuminh`
+  (25/11/2026) — chi tiết ở `BAN-GIAO.md` mục B8. ABS **không có "Kiêm nhiệm"**: cần biết ai
+  xem được cả phòng thì dùng `coQuyen(caller, 'view_all_rooms')` trong `lib/serverAuth.js`,
+  tuyệt đối không viết `caller.role === 'ke_toan_truong'`.
+- Thông tin thương hiệu dùng cho file sinh ra (PDF tờ khai, bản in gửi khách) nằm ở
+  `lib/thuongHieu.js`. Riêng hợp đồng và ĐNTT vẫn giữ thông tin trong
+  `app/api/admin/contract/route.js` và `app/api/admin/dntt/route.js` — đổi thông tin công ty
+  phải sửa cả ba chỗ.
 
 ## Quy trình làm việc
 
