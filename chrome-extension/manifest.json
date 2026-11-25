@@ -1,0 +1,41 @@
+{
+  "manifest_version": 3,
+  "name": "ABS — Cầu nối cổng thuế",
+  "version": "1.0.0",
+  "description": "Chuyển tiếp yêu cầu giữa app.dailythueabs.vn và cổng Dịch vụ công thuế. Không thu thập dữ liệu, không chạy nền.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxYhHzdL1NKfLBFSXObtaDEeo831UivqfW1DFKjU/7V6zVL86n0+mVp6ofeEeNjADAJNzU7c2p2CEA7RtaK+TmkmGCoBUnlgMiT/ASHNmwqmVOmU37xbfQ1AL0WP1JuZNqlmdCnVzPX1ZWtgB1Z5catxhrV0A1/AVJUY5Bxuztv1p2opiia3tnU4e9swAbynrw5aYXjc/DSElPKyerdd/fbuyX3MIazAXycl988GCTq4gI9VBulCtUZXMfgn8563ze3sRv2NbvIdbnLucEIJVW2mblLUscwgcdJD37gdjbG3WIqkhytzPSHxuf5dMmOmipvOHa6XF6ZECHVPUk6aTYwIDAQAB",
+  "permissions": [
+    "cookies",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://dichvucong.gdt.gov.vn/*",
+    "https://thuedientu.gdt.gov.vn/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "externally_connectable": {
+    "matches": [
+      "https://app.dailythueabs.vn/*",
+      "http://localhost/*"
+    ]
+  },
+  "action": {
+    "default_title": "ABS — Cầu nối cổng thuế",
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon16.png",
+      "32": "icon32.png",
+      "48": "icon48.png",
+      "128": "icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icon16.png",
+    "32": "icon32.png",
+    "48": "icon48.png",
+    "128": "icon128.png"
+  }
+}

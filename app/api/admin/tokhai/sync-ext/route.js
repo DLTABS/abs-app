@@ -1,0 +1,531 @@
+// Đồng bộ tờ khai QUA TIỆN ÍCH CHROME — Phân hệ Tờ khai, nhịp B.
+//
+// Khác route /sync (máy chủ tự gọi cổng, chỉ chạy được ở local có IP Việt Nam): ở đây máy chủ
+// KHÔNG gọi cổng lần nào. Nó chỉ dựng sẵn từng yêu cầu HTTP, trang web nhờ tiện ích gọi hộ bằng
+// đường mạng của máy nhân viên, rồi đưa phản hồi nguyên văn về đây để đọc.
+//
+//   POST { clientId, tuNgay, denNgay }        → bắt đầu, trả yêu cầu đầu tiên
+//   POST { maPhien, phanHoi }                 → nạp phản hồi, trả yêu cầu kế tiếp
+//   POST { maPhien, captcha }                 → nạp mã người vừa gõ
+//
+// Máy chủ trả về một trong bốn thứ:
+//   { viec: 'goi',        yeuCau, nghi }      → nhờ tiện ích gọi tiếp
+//   { viec: 'go_captcha', anhCaptcha, nhan }  → dừng lại chờ người gõ
+//   { viec: 'xong',       ...tổng kết }
+//   { viec: 'loi',        moTa }
+//
+// Cookie phiên do trình duyệt giữ. Máy chủ chỉ giữ mã bảo vệ (csrf) và tiến độ.
+import { createClient } from '@supabase/supabase-js'
+import { requireLogin } from '@/lib/serverAuth'
+import { canAccessCredentials } from '@/lib/credentialScope'
+import { decrypt } from '@/lib/taxCrypto'
+import { docBangKetQua, docBangKetQuaEtax, docChiTiet } from '@/lib/dvcPortal'
+import { chiaCuaSo } from '@/lib/tokhaiCuaSo'
+import { ghiHoSoVaThongBao } from '@/lib/tokhaiGhi'
+
+export const maxDuration = 60
+
+const BASE = 'https://dichvucong.gdt.gov.vn/tthc/'
+const ORIGIN = 'https://dichvucong.gdt.gov.vn'
+const PHIEN_SONG = 10 * 60 * 1000     // cả lượt tối đa 10 phút, kể cả thời gian người gõ captcha
+
+function getAdmin() {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY)
+}
+
+// Kho phiên trong bộ nhớ tiến trình. Chỉ có csrf + tiến độ, KHÔNG có cookie, KHÔNG có mật khẩu.
+const phienTam = new Map()
+function donPhienCu() {
+  const nay = Date.now()
+  for (const [ma, p] of phienTam) if (nay - p.chamNhat > PHIEN_SONG) phienTam.delete(ma)
+}
+
+const docCsrf = html => html.match(/name="csrf-token" content="([^"]+)"/)?.[1]
+  || html.match(/name="_csrf"\s+value="([^"]+)"/)?.[1]
+
+// ── Các yêu cầu gửi cho tiện ích ─────────────────────────────────────────────
+const yeuCauTrangDangNhap = () => ({ url: BASE + 'login', method: 'GET' })
+
+const yeuCauAnhCaptcha = () => ({
+  url: `${BASE}login/getCaptcha?${Date.now()}`, method: 'GET',
+  headers: { Referer: BASE + 'login', Accept: 'image/*' },
+})
+
+    // doiTuong: 'DN' = doanh nghiệp, 'CN' = cá nhân / hộ kinh doanh. Trang đăng nhập của cổng
+    // hỏi "Đối tượng đăng nhập" rồi gửi đúng tham số này (processChonDT → submitLDAP); chọn sai là
+    // cổng báo sai tài khoản dù mật khẩu đúng. Hộ kinh doanh còn KHÔNG có đuôi '-QL' ở tên đăng
+    // nhập — xem clients.is_hkd.
+const yeuCauDangNhap = (csrf, tenDN, matKhau, captcha, doiTuong = 'DN') => ({
+  url: BASE + 'loginLDAP', method: 'POST',
+  headers: {
+    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+    // Token IN TRONG TRANG, không phải giá trị cookie XSRF-TOKEN cùng tên.
+    'X-XSRF-TOKEN': csrf,
+    'X-Requested-With': 'XMLHttpRequest',
+    Referer: BASE + 'login', Origin: ORIGIN,
+  },
+  body: new URLSearchParams({
+    tenDN,
+    matKhau: Buffer.from(matKhau, 'utf8').toString('base64'),   // cổng nhận mật khẩu dạng base64
+    doiTuong, captcha, _csrf: csrf,
+  }).toString(),
+})
+
+const yeuCauTrangTraCuu = () => ({ url: BASE + 'tchs', method: 'GET', headers: { Referer: BASE + 'home' } })
+
+const yeuCauKiemCaptcha = (csrf, ma) => ({
+  url: `${BASE}checkCaptcha?captcha=${encodeURIComponent(ma)}&_=${Date.now()}`, method: 'GET',
+  headers: { 'X-XSRF-TOKEN': csrf, Referer: BASE + 'tchs' },
+})
+
+const yeuCauTraCuu = (csrf, { tuNgay, denNgay }, captcha, trang) => ({
+  url: `${BASE}ho-so/search?` + new URLSearchParams({
+    maNghiepVu: '', maTTHC: '', maToKhai: '', maHoSo: '',
+    tuNgay, denNgay, scope_tdt1: 'SELF', mstUyQuyen_tdt1: '',
+    // Cổng CHỈ nhận cỡ trang 20/30/50; gửi số khác là trả bảng rỗng mà không báo lỗi.
+    captcha, _csrf: csrf, page: String(trang), size: '50',
+  }).toString(),
+  method: 'GET',
+  headers: { 'HX-Request': 'true', 'X-XSRF-TOKEN': csrf, Referer: BASE + 'tchs', Accept: 'text/html, */*' },
+})
+
+// Tra cứu TAB CŨ — hồ sơ nộp trước 01/07/2025. POST form, tên tham số đuôi _tdt, phạm vi
+// scope_tdt2. Để trống maToKhai_tdt = lấy MỌI sắc thuế (ô đó nhìn như bắt buộc nhưng không phải).
+// Ba header hx-* là bắt buộc: thiếu thì cổng trả cả trang thay vì mảnh bảng, bộ đọc sẽ ra 0 dòng.
+const yeuCauTraCuuEtax = (csrf, { tuNgay, denNgay }, captcha) => ({
+  url: BASE + 'tchs/thuedientu', method: 'POST',
+  headers: {
+    'Content-Type': 'application/x-www-form-urlencoded',
+    'X-XSRF-TOKEN': csrf,
+    'HX-Request': 'true',
+    'HX-Target': 'bangKetQuaTraCuu_tdt',
+    'HX-Trigger': 'form_search_tdt',
+    'HX-Current-URL': BASE + 'tchs',
+    Referer: BASE + 'tchs', Origin: ORIGIN, Accept: 'text/html-partial',
+  },
+  body: new URLSearchParams({
+    _csrf: csrf, page: '', size: '',
+    maToKhai_tdt: '', maGiaoDichTthc_tdt: '',
+    tuNgay_tdt: tuNgay, denNgay_tdt: denNgay,
+    scope_tdt2: 'SELF', mstUyQuyen_tdt2: '',
+    captcha, btnSearch_tdt: '',
+  }).toString(),
+})
+
+// Gọi đúng tab theo cửa sổ. Mọi chỗ tra cứu phải đi qua đây, đừng gọi thẳng một trong hai hàm —
+// gọi nhầm tab thì cổng trả bảng RỖNG chứ không báo lỗi, nhìn y như "công ty không nộp gì".
+const yeuCauTraCuuCuaSo = (csrf, cs, captcha, trang) =>
+  (cs.nguon === 'etax' ? yeuCauTraCuuEtax(csrf, cs, captcha) : yeuCauTraCuu(csrf, cs, captcha, trang))
+
+// Bảng của hai tab khác cột nhau → bộ đọc khác nhau.
+const docBangTheoCuaSo = (cs, html, trang) =>
+  (cs.nguon === 'etax' ? docBangKetQuaEtax(html, cs) : docBangKetQua(html, { ...cs, trang }))
+
+// Trang chi tiết: `loai` LUÔN ĐỂ TRỐNG, kể cả hồ sơ tab cũ.
+//
+// ⚠ Nghe phản trực giác nên ghi rõ kẻo người sau "sửa lại cho đúng": trình duyệt khi bấm Xem chi
+// tiết thì đi vào /files/detail/<mã>?loai=ETAX, nên 11/10/2026 em theo y vậy — và cổng trả 500
+// "Đã có lỗi hệ thống xảy ra!" cho TẤT CẢ 8 hồ sơ. Để trống thì chính những hồ sơ cũ đó đọc được
+// bình thường (đo thật cùng công ty, cùng phiên, chỉ khác tham số này).
+// Đoán: nhánh ETAX của cổng cần thêm trạng thái mà lượt gọi thuần không có. Dù lý do gì thì bằng
+// chứng rõ: ĐỂ TRỐNG LÀ CHẠY.
+const yeuCauChiTiet = maHoSo => ({
+  url: `${BASE}tchs/files/detail/${encodeURIComponent(maHoSo)}?loai=`, method: 'GET',
+  headers: { Referer: BASE + 'tchs' },
+})
+
+const yeuCauDangXuat = csrf => ({
+  url: BASE + 'logout', method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'X-XSRF-TOKEN': csrf || '', Referer: BASE + 'tchs', Origin: ORIGIN },
+})
+
+// Mọi lượt gọi cổng đều cách nhau ít nhất chừng này, không chỉ giữa các cửa sổ tra cứu — chính
+// chuỗi lệnh đăng nhập/chi tiết dồn dập cũng là gọi dày. Có thêm chút ngẫu nhiên để nhịp không
+// đều tăm tắp như máy.
+// Ưu tiên ỔN ĐỊNH, không phải nhanh: bị cổng chặn giữa giờ làm còn tốn thời gian hơn nhiều so
+// với việc đồng bộ lâu thêm vài phút. Nhịp nền 2–3 giây, có chút ngẫu nhiên cho khỏi đều như máy.
+const NHIP_NEN = () => 2000 + Math.floor(Math.random() * 1000)
+
+// Sau khi đã bị 429 một lần trong lượt này thì CHẬM HẲN LẠI tới cuối lượt — cổng đã khó chịu
+// thì đừng tiếp tục gõ cửa với nhịp cũ.
+function traYeuCau(p, data) {
+  if (data.yeuCau) p.yeuCauCuoi = data.yeuCau
+  const heSo = p.so429 ? 2.5 : 1
+  return Response.json({ ...data, nghi: Math.round(Math.max(data.nghi || 0, NHIP_NEN()) * heSo) })
+}
+
+export async function POST(request) {
+  const auth = await requireLogin()
+  if (!auth.ok) return Response.json({ error: auth.error }, { status: auth.status })
+
+  const body = await request.json()
+  const supabase = getAdmin()
+  donPhienCu()
+
+  try {
+    // ── Bắt đầu một lượt ────────────────────────────────────────────────────
+    if (!body.maPhien) {
+      const { clientId, tuNgay = null, denNgay = null } = body
+      if (!clientId) return Response.json({ error: 'Thiếu clientId' }, { status: 400 })
+      if (!(await canAccessCredentials(supabase, auth.caller, clientId))) {
+        return Response.json({ error: 'Không có quyền đồng bộ công ty này' }, { status: 403 })
+      }
+
+      const [{ data: tk }, { data: cty }] = await Promise.all([
+        supabase.from('tax_accounts')
+          .select('id, username').eq('client_id', clientId).eq('portal', 'dvc').maybeSingle(),
+        supabase.from('clients').select('is_hkd').eq('id', clientId).maybeSingle(),
+      ])
+      if (!tk) return Response.json({ error: 'Công ty này chưa có tài khoản cổng Dịch vụ công' }, { status: 400 })
+
+      // Cổng khóa mỗi tài khoản vào 1 phiên → chặn 2 lượt cùng công ty chạy song song.
+      const { data: dangChay } = await supabase.from('tax_sync_jobs')
+        .select('id, started_at').eq('client_id', clientId).is('finished_at', null).maybeSingle()
+      if (dangChay) {
+        // Không còn phiên nào sống trong bộ nhớ cho công ty này → lượt đó đã chết (người dùng
+        // đóng tab, bấm hủy, hoặc máy chủ khởi động lại). Đóng ngay, không bắt chờ hết 10 phút.
+        const conSong = [...phienTam.values()].some(x => x.clientId === clientId)
+        const treo = !conSong || Date.now() - new Date(dangChay.started_at).getTime() > 10 * 60 * 1000
+        if (treo) {
+          await supabase.from('tax_sync_jobs').update({
+            finished_at: new Date().toISOString(), result: 'captcha_timeout',
+            error_detail: 'Lượt cũ đã chết (đóng tab / bấm hủy / hết giờ), tự đóng',
+          }).eq('id', dangChay.id)
+        } else {
+          return Response.json({ error: 'Công ty này đang có một lượt đồng bộ khác chạy dở' }, { status: 409 })
+        }
+      }
+
+      const { data: job } = await supabase.from('tax_sync_jobs').insert({
+        client_id: clientId, portal: 'dvc', trigger_kind: 'manual',
+        captcha_entered_by: auth.caller.staffId, captcha_count: 0,
+      }).select('id').single()
+
+      // Hồ sơ nào ĐÃ có ngày tiếp nhận từ lần trước thì khỏi mở lại trang chi tiết. Nạp ngay đây
+      // chứ không đợi tra xong: từ 11/10/2026 chi tiết đọc theo TỪNG cửa sổ nên cần có sẵn từ
+      // cửa sổ đầu tiên. Thiếu nó thì lượt nào cũng mở lại hết, gõ cửa cổng thừa hàng chục lần.
+      const { data: daCoCT } = await supabase.from('tax_filings')
+        .select('portal_code').eq('client_id', clientId).not('received_at', 'is', null)
+
+      const maPhien = crypto.randomUUID()
+      phienTam.set(maPhien, {
+        daCoChiTiet: new Set((daCoCT || []).map(f => f.portal_code)),
+        clientId, staffId: auth.caller.staffId, jobId: job?.id || null,
+        doiTuong: cty?.is_hkd ? 'CN' : 'DN',
+        csrf: null, buoc: 'trang_dang_nhap', chamNhat: Date.now(),
+        cuaSo: chiaCuaSo({ tuNgay, denNgay }), viCuaSo: 0, trang: 0,
+        maCaptchaTraCuu: null, dong: [], chiTiet: new Map(), viChiTiet: 0, soMaDaGo: 0,
+      })
+
+      const p = phienTam.get(maPhien)
+      return traYeuCau(p, {
+        maPhien, viec: 'goi', buoc: p.buoc, yeuCau: yeuCauTrangDangNhap(),
+        khoangNgay: `${p.cuaSo[p.cuaSo.length - 1].tuNgay} – ${p.cuaSo[0].denNgay}`,
+        soCuaSo: p.cuaSo.length,
+      })
+    }
+
+    // Người dùng bấm Dừng / Bỏ qua → đóng lượt ngay, đừng để dòng "đang chạy" treo lại.
+    if (body.huy) {
+      const pHuy = phienTam.get(body.maPhien)
+      if (pHuy) return await ketThuc(supabase, pHuy, body.maPhien, 'skipped', 'Người dùng dừng giữa chừng')
+      return Response.json({ viec: 'loi', moTa: 'Phiên đã đóng' })
+    }
+
+    const p = phienTam.get(body.maPhien)
+    if (!p) return Response.json({ error: 'Phiên đã hết hạn, bấm Đồng bộ lại' }, { status: 410 })
+    p.chamNhat = Date.now()
+    if (!(await canAccessCredentials(supabase, auth.caller, p.clientId))) {
+      return Response.json({ error: 'Không có quyền đồng bộ công ty này' }, { status: 403 })
+    }
+
+    // ── Người vừa gõ captcha ────────────────────────────────────────────────
+    if (body.captcha) {
+      const ma = String(body.captcha).trim()
+      if (!ma) return Response.json({ error: 'Chưa nhập mã' }, { status: 400 })
+      p.soMaDaGo++
+      await supabase.from('tax_sync_jobs').update({ captcha_count: p.soMaDaGo }).eq('id', p.jobId)
+
+      if (p.buoc === 'cho_captcha_dn') {
+        const { data: tk } = await supabase.from('tax_accounts')
+          .select('username, password_enc').eq('client_id', p.clientId).eq('portal', 'dvc').maybeSingle()
+        if (!tk) return Response.json({ error: 'Không tìm thấy tài khoản cổng thuế' }, { status: 400 })
+        p.buoc = 'dang_nhap'
+        return traYeuCau(p, {
+          viec: 'goi', buoc: p.buoc,
+          yeuCau: yeuCauDangNhap(p.csrf, tk.username, decrypt(tk.password_enc), ma, p.doiTuong),
+        })
+      }
+      if (p.buoc === 'cho_captcha_tc') {
+        p.maCaptchaTraCuu = ma
+        p.buoc = 'kiem_captcha'
+        return traYeuCau(p, { viec: 'goi', buoc: p.buoc, yeuCau: yeuCauKiemCaptcha(p.csrf, ma) })
+      }
+      return Response.json({ error: 'Chưa tới lúc nhập mã' }, { status: 400 })
+    }
+
+    // ── Nạp phản hồi từ tiện ích ────────────────────────────────────────────
+    const ph = body.phanHoi
+    if (!ph) return Response.json({ error: 'Thiếu phản hồi' }, { status: 400 })
+    if (!ph.ok) return await ketThuc(supabase, p, body.maPhien, 'portal_error', ph.loi || 'Tiện ích gọi cổng thất bại')
+
+    // ── Cổng kêu "quá dày" (429): LÙI LẠI rồi gửi lại ĐÚNG yêu cầu vừa rồi ──
+    //
+    // Giới hạn thật của cổng mình KHÔNG biết, và cũng không đi dò bằng cách tăng dần tốc độ —
+    // làm vậy trên cổng Nhà nước bằng tài khoản thật của khách là dại. Thay vào đó: gặp 429 thì
+    // chờ lâu dần (20s → 60s → 120s), tối đa 3 lần; vẫn bị thì dừng hẳn lượt này.
+    if (ph.status === 429 && p.yeuCauCuoi) {
+      p.so429 = (p.so429 || 0) + 1
+      if (p.so429 > 3) {
+        return await ketThuc(supabase, p, body.maPhien, 'portal_error',
+          'Cổng chặn vì gọi quá dày (429) sau 3 lần chờ. Nghỉ 10–15 phút rồi đồng bộ lại, và chia nhỏ khoảng ngày.')
+      }
+      const cho = [20000, 60000, 120000][p.so429 - 1]
+      return traYeuCau(p, {
+        viec: 'goi', buoc: p.buoc, yeuCau: p.yeuCauCuoi, nghi: cho,
+        tienDo: `Cổng báo quá dày — chờ ${Math.round(cho / 1000)} giây rồi thử lại (lần ${p.so429}/3)`,
+      })
+    }
+
+    const noiDung = ph.noiDung || ''
+
+    switch (p.buoc) {
+      case 'trang_dang_nhap': {
+        p.csrf = docCsrf(noiDung)
+        if (!p.csrf) return await ketThuc(supabase, p, body.maPhien, 'portal_error', 'Không đọc được mã bảo vệ — cổng có thể đã đổi giao diện')
+        p.buoc = 'anh_captcha_dn'
+        return traYeuCau(p, { viec: 'goi', buoc: p.buoc, yeuCau: yeuCauAnhCaptcha() })
+      }
+
+      case 'anh_captcha_dn': {
+        p.buoc = 'cho_captcha_dn'
+        return Response.json({
+          viec: 'go_captcha', buoc: p.buoc, nhan: 'đăng nhập',
+          anhCaptcha: 'data:image/png;base64,' + noiDung,
+        })
+      }
+
+      case 'dang_nhap': {
+        if (/"status"\s*:\s*"?20[01]"?/.test(noiDung)) {
+          await supabase.from('tax_accounts')
+            .update({ status: 'active', last_success_at: new Date().toISOString(), last_error_code: null })
+            .eq('client_id', p.clientId).eq('portal', 'dvc')
+          p.buoc = 'trang_tra_cuu'
+          return traYeuCau(p, { viec: 'goi', buoc: p.buoc, yeuCau: yeuCauTrangTraCuu() })
+        }
+        let moTa = ''
+        try { moTa = JSON.parse(noiDung).desc || '' } catch { moTa = noiDung.slice(0, 200) }
+        // Sai captcha: cổng CHƯA kiểm mật khẩu → cho gõ lại, không đụng trạng thái tài khoản.
+        if (/captcha/i.test(moTa) || /captcha/i.test(noiDung)) {
+          p.buoc = 'anh_captcha_dn'
+          return traYeuCau(p, { viec: 'goi', buoc: p.buoc, yeuCau: yeuCauAnhCaptcha(), moTa: 'Mã captcha chưa đúng, lấy ảnh mới' })
+        }
+        // Sai mật khẩu: DỪNG, không thử lại — thử nhiều lần là khóa tài khoản của khách.
+        await supabase.from('tax_accounts')
+          .update({ status: 'wrong_password', last_error_code: moTa.slice(0, 200) })
+          .eq('client_id', p.clientId).eq('portal', 'dvc')
+        return await ketThuc(supabase, p, body.maPhien, 'wrong_password', 'Sai mật khẩu: ' + moTa)
+      }
+
+      case 'trang_tra_cuu': {
+        // Token ĐỔI sau khi đăng nhập — phải đọc lại, nếu không mọi lệnh sau bị 403.
+        p.csrf = docCsrf(noiDung) || p.csrf
+        p.buoc = 'anh_captcha_tc'
+        return traYeuCau(p, { viec: 'goi', buoc: p.buoc, yeuCau: yeuCauAnhCaptcha() })
+      }
+
+      case 'anh_captcha_tc': {
+        p.buoc = 'cho_captcha_tc'
+        return Response.json({
+          viec: 'go_captcha', buoc: p.buoc, nhan: 'tra cứu',
+          anhCaptcha: 'data:image/png;base64,' + noiDung,
+        })
+      }
+
+      case 'kiem_captcha': {
+        if (noiDung.trim() !== 'success') {
+          p.buoc = 'anh_captcha_tc'
+          return traYeuCau(p, { viec: 'goi', buoc: p.buoc, yeuCau: yeuCauAnhCaptcha(), moTa: 'Mã captcha chưa đúng, lấy ảnh mới' })
+        }
+        // ⚠ ĐỪNG quay về cửa sổ 0 khi đang tra dở. Tab cũ bắt gõ mã MỚI cho TỪNG cửa sổ (xem
+        // chỗ chuyển cửa sổ bên dưới), nên bước này còn chạy giữa chừng — reset là tra lại từ
+        // đầu, vừa tốn mã vừa không bao giờ đi hết khoảng ngày.
+        if (!p.daTraCuu) { p.daTraCuu = true; p.viCuaSo = 0 }
+        p.trang = 0
+        p.buoc = 'tra_cuu'
+        return traYeuCau(p, {
+          viec: 'goi', buoc: p.buoc,
+          yeuCau: yeuCauTraCuuCuaSo(p.csrf, p.cuaSo[p.viCuaSo], p.maCaptchaTraCuu, 0),
+          tienDo: `Tra cửa sổ ${p.viCuaSo + 1}/${p.cuaSo.length}`,
+        })
+      }
+
+      case 'tra_cuu': {
+        if (ph.status === 429) {
+          return await ketThuc(supabase, p, body.maPhien, 'portal_error',
+            'Cổng chặn vì tra cứu quá dày (429). Đợi vài phút rồi tra lại, mỗi lần một khoảng 30 ngày.')
+        }
+        const { ds, conTrangSau } = docBangTheoCuaSo(p.cuaSo[p.viCuaSo], noiDung, p.trang)
+        p.dong.push(...ds)
+
+        if (conTrangSau && p.trang < 9) {
+          p.trang++
+          return traYeuCau(p, {
+            viec: 'goi', buoc: 'tra_cuu', nghi: 3000,
+            yeuCau: yeuCauTraCuuCuaSo(p.csrf, p.cuaSo[p.viCuaSo], p.maCaptchaTraCuu, p.trang),
+            tienDo: `Tra cửa sổ ${p.viCuaSo + 1}/${p.cuaSo.length}, trang ${p.trang + 1}`,
+          })
+        }
+        // ⚠ ĐỌC CHI TIẾT NGAY, TRƯỚC KHI SANG CỬA SỔ KHÁC.
+        //
+        // Cổng chỉ cho mở trang chi tiết của LẦN TRA GẦN NHẤT trong phiên — đúng ràng buộc vẫn
+        // biết với lệnh tải file, nhưng nó áp cho cả trang chi tiết. Bản trước tra hết mọi cửa sổ
+        // rồi mới đi đọc chi tiết, nên mọi hồ sơ trừ cửa sổ cuối đều nhận HTTP 500 "Đã có lỗi hệ
+        // thống xảy ra" (đo thật 11/10/2026: 8/8 hồ sơ tháng 3 hỏng, trong khi lượt chạy chỉ có
+        // một cửa sổ thì đọc được bình thường).
+        //
+        // Hỏng kiểu này LẶNG LẼ: hồ sơ vẫn vào app, chỉ thiếu ngày tiếp nhận (không xét được
+        // đúng/trễ hạn) và thiếu mã tờ khai của hồ sơ tab cũ.
+        p.dongCuaSo = ds
+        p.viChiTiet = 0
+        return buocChiTietKeTiep(p, supabase)
+      }
+
+      case 'het_chi_tiet': {
+        p.viCuaSo++; p.trang = 0
+        if (p.viCuaSo < p.cuaSo.length) {
+          // ⚠ TAB CŨ KHÔNG CHO DÙNG LẠI MÃ CAPTCHA. Đo thật 11/10/2026: cửa sổ thứ hai dùng lại
+          // mã vừa gõ thì cổng trả thẳng 'Mã captcha không chính xác'. Tab DVC thì ngược lại —
+          // một mã dùng được cho nhiều cửa sổ trong cùng phiên (đo 18/09/2026). Nên mỗi cửa sổ
+          // tab cũ phải xin ảnh mã mới, nhân viên gõ thêm một lần.
+          if (p.cuaSo[p.viCuaSo].nguon === 'etax') {
+            p.buoc = 'anh_captcha_tc'
+            return traYeuCau(p, {
+              viec: 'goi', buoc: p.buoc, nghi: 5000, yeuCau: yeuCauAnhCaptcha(),
+              tienDo: `Cửa sổ ${p.viCuaSo + 1}/${p.cuaSo.length} (hồ sơ cũ) — cần mã mới`,
+            })
+          }
+          // Giãn nhịp giữa các cửa sổ — bắn liền tay là cổng trả 429.
+          return traYeuCau(p, {
+            viec: 'goi', buoc: 'tra_cuu', nghi: 5000,
+            yeuCau: yeuCauTraCuuCuaSo(p.csrf, p.cuaSo[p.viCuaSo], p.maCaptchaTraCuu, 0),
+            tienDo: `Tra cửa sổ ${p.viCuaSo + 1}/${p.cuaSo.length}`,
+          })
+        }
+        // Hết cửa sổ: chi tiết đã đọc xong theo từng cửa sổ rồi, giờ chỉ việc ghi và đăng xuất.
+        p.buoc = 'dang_xuat'
+        return traYeuCau(p, {
+          viec: 'goi', buoc: p.buoc, yeuCau: yeuCauDangXuat(p.csrf),
+          tienDo: 'Đang ghi dữ liệu và đăng xuất',
+        })
+      }
+
+      case 'chi_tiet': {
+        const dong = (p.dongCuaSo || [])[p.viChiTiet]
+        const ma = dong?.maHoSo
+        // Log đủ để lần chạy sau tự nói ra vì sao hỏng, khỏi phải đoán: mã nào, tab nào, cổng
+        // trả mã gì, đọc được những gì. Chi tiết hỏng thì MẤT ngày tiếp nhận (không xét được
+        // đúng/trễ hạn) và MẤT mã tờ khai của hồ sơ tab cũ — hỏng lặng lẽ, không ai thấy.
+        console.log(`[CHI TIẾT] ${ma} (${dong?.nguon || 'dvc'}): cổng trả ${ph.status}, `
+          + `${String(noiDung || '').length} ký tự`
+          + (ph.status !== 200 ? ` | đầu: ${String(noiDung || '').slice(0, 200).replace(/\s+/g, ' ')}` : ''))
+        if (ma && ph.status === 200) {
+          const ct = docChiTiet(noiDung)
+          console.log(`[CHI TIẾT] ${ma}: tờ khai=${ct.toKhai || 'KHÔNG ĐỌC ĐƯỢC'}, `
+            + `ngày tiếp nhận=${ct.ngayTiepNhan || 'không có'}, ${ct.thongBao.length} thông báo`)
+          p.chiTiet.set(ma, ct)
+          // Hồ sơ tab cũ: bảng kết quả không có mã tờ khai nên chưa khớp được danh mục. Trang chi
+          // tiết có đủ ('05/KK-TNCN - Tờ khai khấu trừ…') → lấy về đây, nếu không thì hồ sơ nằm
+          // trong app mà KHÔNG biết là sắc thuế gì: không khớp được nghĩa vụ, và lúc tải file sẽ
+          // đặt tên TK_KHAC_… thay vì TK_TNCN_…
+          if (dong.nguon === 'etax' && ct.toKhai) dong.tenToKhai = ct.toKhai
+        }
+        p.viChiTiet++
+        return buocChiTietKeTiep(p)
+      }
+
+      case 'dang_xuat':
+        return await ketThuc(supabase, p, body.maPhien, 'success', null)
+
+      default:
+        return Response.json({ error: 'Bước không hợp lệ: ' + p.buoc }, { status: 400 })
+    }
+  } catch (e) {
+    return Response.json({ error: e.message }, { status: 400 })
+  }
+}
+
+// Mở trang chi tiết từng hồ sơ CỦA CỬA SỔ VỪA TRA, để lấy ngày tiếp nhận + thông báo + mã tờ
+// khai. Không tốn captcha, nhưng phải giãn nhịp.
+//
+// Chạy theo TỪNG CỬA SỔ chứ không gom cuối lượt: cổng chỉ cho mở chi tiết của lần tra gần nhất.
+// Hết hồ sơ của cửa sổ này thì quay lại nhánh 'het_chi_tiet' để sang cửa sổ kế.
+function buocChiTietKeTiep(p) {
+  const GIOI_HAN = 25       // đủ cho một cửa sổ; còn nữa thì lượt sau lấy tiếp
+  const ds = p.dongCuaSo || []
+
+  // BỎ QUA hồ sơ đã có ngày tiếp nhận từ lần đồng bộ trước: trang chi tiết chỉ dùng để lấy ngày
+  // tiếp nhận và danh sách thông báo, lấy rồi thì mở lại chẳng thêm gì. Cách giảm nguy cơ bị cổng
+  // chặn tốt nhất là GỌI ÍT ĐI, chứ không phải gọi chậm hơn.
+  // BỎ QUA luôn hồ sơ TAB CŨ: gọi trang chi tiết của chúng từ app LUÔN nhận HTTP 500 "Đã có lỗi
+  // hệ thống xảy ra" (đo thật 11/10/2026 — thử cả loai= trống lẫn ETAX, cả đọc-ngay-sau-cửa-sổ
+  // lẫn gom-cuối-lượt, 8/8 hồ sơ hỏng), dù mở cùng địa chỉ đó bằng trình duyệt thì ra bình
+  // thường. Mà kể cả mở được cũng chẳng thêm gì: ô "Ngày tiếp nhận" của hồ sơ cũ TRỐNG trên
+  // chính cổng. Loại tờ khai đã đoán được từ tên (doanLoaiToKhaiTuTen), nên bỏ bước này là
+  // BỚT MỘT LƯỢT GỌI CỔNG CHO MỖI HỒ SƠ, vừa nhanh vừa đỡ nguy cơ bị chặn.
+  while (p.viChiTiet < ds.length
+      && (ds[p.viChiTiet].nguon === 'etax' || p.daCoChiTiet?.has(ds[p.viChiTiet].maHoSo))) {
+    p.boQuaChiTiet = (p.boQuaChiTiet || 0) + 1
+    p.viChiTiet++
+  }
+
+  if (p.viChiTiet < ds.length && p.viChiTiet < GIOI_HAN) {
+    p.buoc = 'chi_tiet'
+    return traYeuCau(p, {
+      viec: 'goi', buoc: p.buoc, nghi: 2500,
+      yeuCau: yeuCauChiTiet(ds[p.viChiTiet].maHoSo),
+      tienDo: `Cửa sổ ${p.viCuaSo + 1}/${p.cuaSo.length} — đọc chi tiết ${p.viChiTiet + 1}/${Math.min(ds.length, GIOI_HAN)}`,
+    })
+  }
+  // Xong cửa sổ này. Tên bước phải khớp nhánh trong switch, nếu không lượt sau rơi vào default.
+  p.buoc = 'het_chi_tiet'
+  return traYeuCau(p, { viec: 'goi', buoc: p.buoc, nghi: 1500, yeuCau: yeuCauTrangTraCuu() })
+}
+
+async function ketThuc(supabase, p, maPhien, ketQua, loi) {
+  const admin = supabase
+  let tongKet = { themMoi: 0, capNhat: 0, khopNghiaVu: 0, khongKhop: 0, soThongBao: 0 }
+
+  if (ketQua === 'success' && p.dong.length) {
+    tongKet = await ghiHoSoVaThongBao(admin, p.clientId, p.dong, p.chiTiet)
+  }
+
+  if (p.jobId) {
+    await admin.from('tax_sync_jobs').update({
+      finished_at: new Date().toISOString(),
+      result: ketQua,
+      error_detail: loi ? String(loi).slice(0, 500) : null,
+      new_filings: tongKet.themMoi,
+      changed_filings: tongKet.capNhat,
+    }).eq('id', p.jobId)
+  }
+  await admin.from('tax_access_logs').insert({
+    staff_id: p.staffId, client_id: p.clientId, action: 'sync',
+    detail: { qua: 'tien_ich_chrome', ket_qua: ketQua, so_ma_captcha: p.soMaDaGo, ...tongKet },
+  })
+
+  phienTam.delete(maPhien)
+
+  if (ketQua !== 'success') return Response.json({ viec: 'loi', moTa: loi })
+  return Response.json({
+    viec: 'xong',
+    khoangNgay: `${p.cuaSo[p.cuaSo.length - 1].tuNgay} – ${p.cuaSo[0].denNgay}`,
+    soMaCaptcha: p.soMaDaGo,
+    soHoSo: p.dong.length,
+    ...tongKet,
+    hoSo: p.dong.slice(0, 50).map(r => ({
+      maHoSo: r.maHoSo, tenToKhai: r.tenToKhai, ky: r.kyTinhThue,
+      loai: r.loaiToKhai, ngayNop: r.ngayNop, trangThai: r.trangThaiCong,
+    })),
+  })
+}

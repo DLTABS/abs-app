@@ -130,6 +130,7 @@ export default function Sidebar({ onClose }) {
   const canViewAllDebt     = can(role, 'view_all_debt', permData)
   const canManageDatabase  = can(role, 'manage_database', permData)
   const canManageRoles     = can(role, 'manage_roles', permData)
+  const canViewToKhai      = can(role, 'view_tax_filings', permData)
   const showAdminSection = canManageRooms || canManageStaff || canManageClients || canManageChecklist || canViewAllDebt || canManageDatabase || canManageRoles
   const onRoomPage = pathname && pathname.startsWith('/room/')
 
@@ -199,6 +200,16 @@ export default function Sidebar({ onClose }) {
         <NavItem href="/clients"    icon="🏢" label="Danh sách công ty"   pathname={pathname} onClose={onClose} />
         <NavItem href="/checklist"  icon="📋" label="Checklist công việc" pathname={pathname} onClose={onClose} />
         <NavItem href="/my-debt"    icon="💰" label="Quản lý công nợ"     pathname={pathname} onClose={onClose} />
+        {/* Tờ khai & Hạn nộp: cần quyền view_tax_filings (sql/15_tokhai_module.sql) — API tự giới
+            hạn theo công ty mình phụ trách / phòng mình làm trưởng. */}
+        {canViewToKhai && (
+          <NavItem href="/tokhai" icon="🧾" label="Tờ khai & Hạn nộp" pathname={pathname} onClose={onClose} />
+        )}
+        {/* Soát xét báo cáo: mọi nhân viên kế toán, API tự giới hạn phạm vi. Chỉ ĐỌC thư mục công ty
+            trên máy (dùng chung thư mục đã trỏ ở Tờ khai) — app/soatbaocao, lib/phanTich. */}
+        <NavItem href="/soatbaocao" icon="🔎" label="Soát xét báo cáo" pathname={pathname} onClose={onClose} />
+        {/* Rủi ro thuế (39 tiêu chí): cùng phạm vi + cùng thư mục với Soát xét — app/ruirothue, lib/ruiro. */}
+        <NavItem href="/ruirothue" icon="⚖️" label="Rủi ro thuế" pathname={pathname} onClose={onClose} />
         {/* Nhật ký làm việc: để ở menu chính cho người KHÔNG có mục Quản trị (nhân viên/trưởng phòng);
             với tài khoản quản trị thì hiện trong mục Quản trị bên dưới cho đồng bộ */}
         {!showAdminSection && (
