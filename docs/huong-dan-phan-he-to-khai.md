@@ -13,10 +13,10 @@ Ba phần: [cài tiện ích](#phần-1--cài-tiện-ích-chrome) · [cách dùn
 
 ### Vì sao phải cài
 
-Máy chủ của An Hiểu Minh đặt ở Singapore. Cổng Dịch vụ công thuế **chặn mọi kết nối từ nước ngoài**, nên
+Máy chủ của app ABS đặt ở Singapore. Cổng Dịch vụ công thuế **chặn mọi kết nối từ nước ngoài**, nên
 máy chủ gọi thẳng vào cổng là không tới. Máy của nhân viên ở Việt Nam thì gọi bình thường.
 
-Tiện ích chỉ làm đúng một việc: **chuyển tiếp yêu cầu** giữa trang An Hiểu Minh và cổng thuế. Nó không
+Tiện ích chỉ làm đúng một việc: **chuyển tiếp yêu cầu** giữa trang app ABS và cổng thuế. Nó không
 tự chạy nền, không thu thập gì, không đọc trang nào khác.
 
 ### Cài (5 phút, làm một lần)
